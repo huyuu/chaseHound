@@ -1,7 +1,8 @@
-[submodule "LLMTrader"]
+
+[submodule "submodules/LLMTrader"]
 	path = submodules/LLMTrader
 	url = https://github.com/huyuu/LLMTrader
-	
-[submodule "submodules/US-Stock-Symbols"]
-	path = submodules/US-Stock-Symbols
+	branch = main
+[submodule "submodules/us_stock_symbols"]
+	path = submodules/us_stock_symbols
 	url = https://github.com/rreichel3/US-Stock-Symbols
