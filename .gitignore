@@ -1,3 +1,4 @@
 src_python/__pycache__/
 experiments/__pycache__/
+tests/__pycache__/
 logs/
