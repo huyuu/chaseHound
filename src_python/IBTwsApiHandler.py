@@ -1,8 +1,3 @@
-import sys
-import os
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, "submodules", "LLMTrader"))
-
 from ibapi import wrapper
 from ibapi.wrapper import EWrapper
 from ibapi.client import EClient
@@ -25,6 +20,7 @@ from ibapi.tag_value import TagValue
 from ibapi.account_summary_tags import *
 
 from src.IBTwsAPIHandler import IBTwsAPIHandler as LLMTraderIBTwsAPIHandler
+from ChaseHoundBase import ChaseHoundBase
 
 import threading
 from time import sleep
@@ -34,9 +30,10 @@ from tqdm import tqdm
 import time
 
 
-class IBTwsApiHandler(LLMTraderIBTwsAPIHandler):
+class IBTwsApiHandler_ConcurrentGetPrice(LLMTraderIBTwsAPIHandler, ChaseHoundBase):
     def __init__(self):
         super().__init__()
+        ChaseHoundBase.__init__(self)
         # EClient.__init__(self, self)
         # internal structures for managing market data request queue
         self._max_concurrent_requests = 1
@@ -75,19 +72,7 @@ class IBTwsApiHandler(LLMTraderIBTwsAPIHandler):
                 self._working_queue.task_done()
     # MARK: - Private Helper Methods
     
-    def _queue_worker(self):
-        """Background loop that dispatches waiting requests while respecting limits."""
-        while not self._queue_worker_stop_event.is_set():
-            # attempt to move queued requests into working set
-            self._process_working_queue()
-            # short sleep to prevent busy-wait; tweak as needed for latency/CPU trade-off
-            sleep(0.05)
-
-    def _process_working_queue(self):
-        """Send as many queued requests as possible up to the concurrency limit."""
-        while not self._working_queue.empty():
-            symbol, primary_exchange = self._working_queue.get()
-            self.__async_fetch_last_trade_price_for_symbol(symbol, primary_exchange)
+    
 
     # MARK: - Fetch Market Data
 
@@ -101,13 +86,14 @@ class IBTwsApiHandler(LLMTraderIBTwsAPIHandler):
         assert len(symbols) == len(primaryExchanges), "symbols and primaryExchanges must have same length"
 
         start_time = time.time()
-        reset_timeout = 10 # seconds
+        reset_timeout = 60 # seconds
         for symbol, primary_exchange in zip(symbols, primaryExchanges):
             # wait until working queue has capacity
             while self._working_queue.full():
                 now = time.time()
                 total_seconds = now - start_time
                 if total_seconds > reset_timeout:
+                    print(f"Resetting working queue and results dictionary due to timeout after {total_seconds} seconds")
                     self._reset_working_queue_and_results_dict()
                     assert self._working_queue.empty(), "working queue is still not empty after reset"
                 else:
@@ -183,3 +169,17 @@ class IBTwsApiHandler(LLMTraderIBTwsAPIHandler):
             self._working_queue.queue.clear()             # Clear all enqueued items
             self._working_queue.all_tasks_done.notify_all()  # Unblock threads waiting on .join()
             self._working_queue.unfinished_tasks = 0      # Reset task counter manually (⚠️ internal)
+
+    def _queue_worker(self):
+        """Background loop that dispatches waiting requests while respecting limits."""
+        while not self._queue_worker_stop_event.is_set():
+            # attempt to move queued requests into working set
+            self._process_working_queue()
+            # short sleep to prevent busy-wait; tweak as needed for latency/CPU trade-off
+            sleep(0.05)
+
+    def _process_working_queue(self):
+        """Send as many queued requests as possible up to the concurrency limit."""
+        while not self._working_queue.empty():
+            symbol, primary_exchange = self._working_queue.get()
+            self.__async_fetch_last_trade_price_for_symbol(symbol, primary_exchange)

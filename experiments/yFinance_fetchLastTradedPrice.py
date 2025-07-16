@@ -1,6 +1,6 @@
 import sys
 sys.path.append("..")
-from src_python.IBTwsApiHandler import IBTwsApiHandler_ConcurrentGetPrice
+from src_python.YfinanceHandler import YfinanceHandler
 from time import sleep
 import pandas as pd
 import os
@@ -8,9 +8,7 @@ import time
 from tqdm import tqdm
 
 if __name__ == "__main__":
-    tws: IBTwsApiHandler_ConcurrentGetPrice = IBTwsApiHandler_ConcurrentGetPrice()
-    tws.async_run()
-    sleep(1)
+    yFinanceHandler: YfinanceHandler = YfinanceHandler()
 
     # fetch all symbols list of NASDAQ
     project_root = os.path.dirname(os.path.dirname(__file__))
@@ -19,10 +17,14 @@ if __name__ == "__main__":
     symbols_df["marketCap"] = pd.to_numeric(symbols_df["marketCap"], errors='coerce')
     symbols_df = symbols_df[symbols_df["marketCap"] > 1e8]
 
+    # price = yFinanceHandler.fetch_last_traded_price("AAPL")
+    # print(price)
+
     # Get prices for all symbols
     start_time = time.time()
-
-    prices = tws.async_fetch_last_trade_price_for_symbols(symbols_df["symbol"].tolist(), ["NASDAQ"] * len(symbols_df))
+    for symbol in tqdm(symbols_df["symbol"].tolist()):
+        price = yFinanceHandler.fetch_last_traded_price(symbol)
+        print(f"\n{symbol}: {price}")
 
     end_time = time.time()
     execution_time = end_time - start_time
