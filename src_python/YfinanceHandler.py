@@ -23,7 +23,7 @@ class YfinanceHandler(ChaseHoundBase):
 
     # MARK: - Public Methods
 
-    def async_fetch_last_trade_price_for_symbols(self, symbols: List[str]) -> List[float]:
+    def async_fetch_last_trade_price_for_symbols(self, symbols: List[str]) -> List[Optional[float]]:
         """Fetch the last traded price for each symbol concurrently.
 
         This mirrors the behaviour of `IBTwsApiHandler.async_fetch_last_trade_price_for_symbols` but 
@@ -42,7 +42,7 @@ class YfinanceHandler(ChaseHoundBase):
         results = [future.result() for future in tqdm(futures, desc="Conducting YfinanceHandler.async_fetch_last_trade_price_for_symbols")]
         return results
 
-    def fetch_last_traded_price(self, symbol: str) -> float:
+    def fetch_last_traded_price(self, symbol: str) -> Optional[float]:
         symbol = self._rewrite_symbol_names_for_yfinance(symbol)
 
         # get the date of the designated exchange
@@ -55,7 +55,7 @@ class YfinanceHandler(ChaseHoundBase):
                 return None
             return price.iloc[-1]["close"]
         except Exception as e:
-            self.log_exception(f"Error fetching last traded price for {symbol}", e)
+            # self.log_exception(f"{self.red_color_code}Error fetching last traded price for {symbol}{self.reset_color_code}", e)
             # raise RuntimeError(f"Error fetching last traded price for {symbol}") from e
             return None
         
@@ -67,7 +67,7 @@ class YfinanceHandler(ChaseHoundBase):
         try:
             data = self._trading_view_handler.fetch_history_data_of(symbol, from_date=from_date, to_date=to_date, interval=interval)
         except Exception as e:
-            self.log_warning(f"{self.yellow_color_code}Error fetching history prices for {symbol}, during execution of YfinanceHandler.fetch_history_prices_of.{self.reset_color_code}")
+            # self.log_warning(f"{self.yellow_color_code}Error fetching history prices for {symbol}, during execution of YfinanceHandler.fetch_history_prices_of.{self.reset_color_code}")
             data = None
 
         # set data to None if unavailable
