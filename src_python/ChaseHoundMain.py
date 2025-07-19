@@ -3,6 +3,7 @@ from src_python.UsSymbolsHandler import UsSymbolsHandler
 from src_python.YfinanceHandler import YfinanceHandler
 from src_python.InvestmentTarget import InvestmentTarget
 from typing import List
+from time import sleep
 
 class ChaseHoundMain():
     def __init__(self):
