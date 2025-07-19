@@ -23,6 +23,14 @@ class YfinanceHandler(ChaseHoundBase):
 
     # MARK: - Public Methods
 
+    def async_fetch_history_prices_of(self, symbols: List[str], from_date: datetime, to_date: datetime, interval: str) -> Optional[pd.DataFrame]:
+        futures: List[Future] = [
+            self._thread_pool_executor.submit(self._fetch_history_prices_of, symbol, from_date, to_date, interval)
+            for symbol in symbols
+        ]
+        results = [future.result() for future in tqdm(futures, desc="Conducting YfinanceHandler.async_fetch_history_prices_of", total=len(symbols))]
+        return results
+
     def async_fetch_last_trade_price_for_symbols(self, symbols: List[str]) -> List[Optional[float]]:
         """Fetch the last traded price for each symbol concurrently.
 
@@ -35,22 +43,20 @@ class YfinanceHandler(ChaseHoundBase):
 
         # Submit all tasks to the shared executor without blocking
         futures: List[Future] = [
-            self._thread_pool_executor.submit(self.fetch_last_traded_price, symbol)
+            self._thread_pool_executor.submit(self._fetch_last_traded_price, symbol)
             for symbol in symbols
         ]
 
         results = [future.result() for future in tqdm(futures, desc="Conducting YfinanceHandler.async_fetch_last_trade_price_for_symbols")]
         return results
 
-    def fetch_last_traded_price(self, symbol: str) -> Optional[float]:
-        symbol = self._rewrite_symbol_names_for_yfinance(symbol)
-
+    def _fetch_last_traded_price(self, symbol: str) -> Optional[float]:
         # get the date of the designated exchange
         from_date = self.absolute_current_date_in_eastern - timedelta(days=1)
         to_date = self.absolute_current_date_in_eastern
 
         try:
-            price = self.fetch_history_prices_of(symbol, from_date=from_date, to_date=to_date, interval="1h")
+            price = self._fetch_history_prices_of(symbol, from_date=from_date, to_date=to_date, interval="1h")
             if price is None or len(price) == 0:
                 return None
             return price.iloc[-1]["close"]
@@ -60,7 +66,7 @@ class YfinanceHandler(ChaseHoundBase):
             return None
         
 
-    def fetch_history_prices_of(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> Optional[pd.DataFrame]:
+    def _fetch_history_prices_of(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> Optional[pd.DataFrame]:
         # rewrite symbol name
         symbol = self._rewrite_symbol_names_for_yfinance(symbol)
         # fetch data

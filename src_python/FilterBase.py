@@ -1,11 +1,15 @@
-from src_python.ChaseHoundBase import ChaseHoundBase
+from src_python.ChaseHoundConfig import ChaseHoundConfig
+from typing import Callable, List
+from src_python.InvestmentTarget import InvestmentTarget
 
-class FilterBase(ChaseHoundBase):
-    def __init__(self):
-        super().__init__()
+class FilterBase(ChaseHoundConfig):
+
+    # MARK: - Instance Properties
+    def __init__(self, config: ChaseHoundConfig):
+        super().__init__(tunableParams=config.tunableParams)
         self._filterFunction: Callable[[InvestmentTarget], bool] = None
 
     def apply(self, targets: List[InvestmentTarget]) -> List[InvestmentTarget]:
-        return filter(self._filterFunction, targets)
+        raise NotImplementedError("Subclass must implement apply method")
 
     

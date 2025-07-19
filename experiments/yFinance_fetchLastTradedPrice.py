@@ -17,7 +17,7 @@ if __name__ == "__main__":
     symbols_df["marketCap"] = pd.to_numeric(symbols_df["marketCap"], errors='coerce')
     symbols_df = symbols_df[symbols_df["marketCap"] > 1e8]
 
-    price = yFinanceHandler.fetch_last_traded_price("AAPL")
+    price = yFinanceHandler._fetch_last_traded_price("AAPL")
     print(price)
 
     # Get prices for all symbols asynchronously
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # Get prices for all symbols synchronously
     start_time = time.time()
     for symbol in tqdm(symbols_df["symbol"].tolist()):
-        price = yFinanceHandler.fetch_last_traded_price(symbol)
+        price = yFinanceHandler._fetch_last_traded_price(symbol)
         print(f"\n{symbol}: {price}")
 
     end_time = time.time()
