@@ -1,17 +1,20 @@
 from src_python.ChaseHoundBase import ChaseHoundBase
-from src_python.ChaseHoundConfig import ChaseHoundConfig
+from src_python.ChaseHoundConfig import ChaseHoundConfig, ChaseHoundTunableParams
 from src_python.UsSymbolsHandler import UsSymbolsHandler
 from src_python.YfinanceHandler import YfinanceHandler
 from src_python.InvestmentTarget import InvestmentTarget
 from src_python.SimpleFilters import MarketGapFilter, TurnoverFilter, PriceFilter, LastReportDateFilter
 from typing import List
 from time import sleep
+from datetime import timedelta, datetime
 
 class ChaseHoundMain(ChaseHoundBase):
     def __init__(self, config: ChaseHoundConfig):
         super().__init__()
 
-        self.usSymbolsHandler: UsSymbolsHandler = UsSymbolsHandler()
+        self.config: ChaseHoundConfig = config
+
+        self.usSymbolsHandler: UsSymbolsHandler = UsSymbolsHandler(config)
         self.yfinanceHandler: YfinanceHandler = YfinanceHandler()
 
         self.market_gap_filter: MarketGapFilter = MarketGapFilter(config)
@@ -40,14 +43,16 @@ class ChaseHoundMain(ChaseHoundBase):
     def _fetch_symbols_data(self) -> List[InvestmentTarget]:
         # 1-1. Fetch NASDAQ symbols list
         nasdaq_symbols = self.usSymbolsHandler.get_nasdaq_symbols()
-        # 1-2. Fetch the necessary history prices for all symbols
+        # 1-2. Calculate the earliest date necessary for history prices
+        earliest_date = self.absolute_current_date_in_eastern - timedelta(days=int(self.config.tunableParams.lowest_avg_turnover_days) * 2 + 1)
+        # 1-3. Fetch the necessary history prices for all symbols
         history_prices = self.yfinanceHandler.async_fetch_history_prices_of(
             nasdaq_symbols, 
-            from_date=self.absolute_current_date_in_eastern - timedelta(days=365), 
+            from_date=earliest_date, 
             to_date=self.absolute_current_date_in_eastern, 
             interval="1d"
         )
-        # 1-3. Init InvestmentTarget for all symbols
+        # 1-4. Init InvestmentTarget for all symbols
         investment_targets = [InvestmentTarget(symbol, price) for symbol, price in zip(nasdaq_symbols, history_prices)]
         return investment_targets
         
@@ -61,3 +66,11 @@ class ChaseHoundMain(ChaseHoundBase):
         
     def _filter_with_signal_layers(self, targets: List[InvestmentTarget]) -> List[InvestmentTarget]:
         pass
+
+
+
+if __name__ == "__main__":
+    tunableParams = ChaseHoundTunableParams()
+    config = ChaseHoundConfig(tunableParams=tunableParams)
+    main = ChaseHoundMain(config)
+    main.run()
