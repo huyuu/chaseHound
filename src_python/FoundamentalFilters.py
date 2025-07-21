@@ -10,7 +10,7 @@ class MarketGapFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.latest_market_gap >= self.config.tunableParams.lowest_market_gap
+        return target.latestMarketCap >= self.config.tunableParams.lowest_market_gap
 
 
 
@@ -22,7 +22,7 @@ class TurnoverFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.latest_turnover >= self.config.tunableParams.lowest_avg_turnover
+        return target.latestTurnover >= self.config.tunableParams.lowest_avg_turnover
 
 
 class PriceFilter(FilterBase):
@@ -31,7 +31,7 @@ class PriceFilter(FilterBase):
         assert self.config.tunableParams.lowest_price is not None
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.latest_price >= self.config.tunableParams.lowest_price
+        return target.latestPrice >= self.config.tunableParams.lowest_price
 
 
 class LastReportDateFilter(FilterBase):

@@ -23,7 +23,7 @@ class YfinanceHandler(ChaseHoundBase):
 
     # MARK: - Public Methods
 
-    def async_fetch_history_prices_of(self, symbols: List[str], from_date: datetime, to_date: datetime, interval: str) -> Optional[pd.DataFrame]:
+    def async_fetch_history_prices_of(self, symbols: List[str], from_date: datetime, to_date: datetime, interval: str) -> List[Optional[pd.DataFrame]]:
         futures: List[Future] = [
             self._thread_pool_executor.submit(self._fetch_history_prices_of, symbol, from_date, to_date, interval)
             for symbol in symbols
@@ -72,6 +72,11 @@ class YfinanceHandler(ChaseHoundBase):
         # fetch data
         try:
             data = self._trading_view_handler.fetch_history_data_of(symbol, from_date=from_date, to_date=to_date, interval=interval)
+            if data is None or len(data) == 0:
+                return None
+            # calculate turnover
+            data["turnover"] = data["volume"] * data["close"]
+            return data
         except Exception as e:
             # self.log_warning(f"{self.yellow_color_code}Error fetching history prices for {symbol}, during execution of YfinanceHandler.fetch_history_prices_of.{self.reset_color_code}")
             data = None
