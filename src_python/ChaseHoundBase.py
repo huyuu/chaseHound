@@ -13,27 +13,27 @@ class ChaseHoundBase:
 
     # MARK: - Class Properties
     project_root: str = os.path.dirname(os.path.dirname(__file__))
-        # set absolute current time and date in eastern timezone
+    # set absolute current time and date in eastern timezone
     eastern = pytz.timezone('America/New_York')  # GMT-5 timezone
-    absolute_current_time_in_eastern_cls = datetime.now(eastern).replace(tzinfo=None)
+    absolute_current_datetime_in_eastern_cls = datetime.now(eastern).replace(tzinfo=None)
     absolute_current_date_in_eastern_cls = datetime(
-        year=absolute_current_time_in_eastern_cls.year, 
-        month=absolute_current_time_in_eastern_cls.month, 
-        day=absolute_current_time_in_eastern_cls.day
+        year=absolute_current_datetime_in_eastern_cls.year, 
+        month=absolute_current_datetime_in_eastern_cls.month, 
+        day=absolute_current_datetime_in_eastern_cls.day
     )
     # set absolute current time and date in UTC timezone
-    absolute_current_time_in_utc_cls = datetime.now(pytz.utc).replace(tzinfo=None)
+    absolute_current_datetime_in_utc_cls = datetime.now(pytz.utc).replace(tzinfo=None)
     absolute_current_date_in_utc_cls = datetime(
-        year=absolute_current_time_in_utc_cls.year, 
-        month=absolute_current_time_in_utc_cls.month, 
-        day=absolute_current_time_in_utc_cls.day
+        year=absolute_current_datetime_in_utc_cls.year, 
+        month=absolute_current_datetime_in_utc_cls.month, 
+        day=absolute_current_datetime_in_utc_cls.day
     )
     # set absolute current time and date in JPT timezone
-    absolute_current_time_in_jpt_cls = datetime.now(pytz.timezone('Asia/Tokyo')).replace(tzinfo=None)
+    absolute_current_datetime_in_jpt_cls = datetime.now(pytz.timezone('Asia/Tokyo')).replace(tzinfo=None)
     absolute_current_date_in_jpt_cls = datetime(
-        year=absolute_current_time_in_jpt_cls.year, 
-        month=absolute_current_time_in_jpt_cls.month, 
-        day=absolute_current_time_in_jpt_cls.day
+        year=absolute_current_datetime_in_jpt_cls.year, 
+        month=absolute_current_datetime_in_jpt_cls.month, 
+        day=absolute_current_datetime_in_jpt_cls.day
     )
     # set common properties
     green_color_code = "\033[92m"
@@ -42,20 +42,20 @@ class ChaseHoundBase:
     reset_color_code = "\033[0m"
 
     @property
-    def absolute_current_time_in_eastern(self):
-        return ChaseHoundBase.absolute_current_time_in_eastern_cls
+    def absolute_current_datetime_in_eastern(self):
+        return ChaseHoundBase.absolute_current_datetime_in_eastern_cls
 
     @property
     def absolute_current_date_in_eastern(self):
         return ChaseHoundBase.absolute_current_date_in_eastern_cls
 
     @property
-    def absolute_current_time_in_utc(self):
-        return ChaseHoundBase.absolute_current_time_in_utc_cls
+    def absolute_current_datetime_in_utc(self):
+        return ChaseHoundBase.absolute_current_datetime_in_utc_cls
 
     @property
-    def absolute_current_date_in_utc(self):
-        return ChaseHoundBase.absolute_current_date_in_utc_cls
+    def absolute_current_datetime_in_utc(self):
+        return ChaseHoundBase.absolute_current_datetime_in_utc_cls
     
     @property
     def absolute_current_date_in_jpt(self):

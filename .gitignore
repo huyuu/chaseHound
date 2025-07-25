@@ -4,3 +4,4 @@ tests/__pycache__/
 logs/
 .venv/
 .pytest_cache/
+temp/

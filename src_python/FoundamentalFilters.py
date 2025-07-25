@@ -10,7 +10,9 @@ class MarketGapFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.latestMarketCap >= self.config.tunableParams.lowest_market_gap
+        didPass = target.latestMarketCap >= self.config.tunableParams.lowest_market_gap
+        target.additional_info["didPassMarketGapFilter"] = didPass
+        return didPass
 
 
 
@@ -22,7 +24,9 @@ class TurnoverFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.latestTurnover >= self.config.tunableParams.lowest_avg_turnover
+        didPass = target.endTurnover >= self.config.tunableParams.lowest_avg_turnover
+        target.additional_info["didPassTurnoverFilter"] = didPass
+        return didPass
 
 
 class PriceFilter(FilterBase):
@@ -31,7 +35,9 @@ class PriceFilter(FilterBase):
         assert self.config.tunableParams.lowest_price is not None
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.latestPrice >= self.config.tunableParams.lowest_price
+        didPass = target.latestPrice >= self.config.tunableParams.lowest_price
+        target.additional_info["didPassPriceFilter"] = didPass
+        return didPass
 
 
 class LastReportDateFilter(FilterBase):
@@ -41,4 +47,6 @@ class LastReportDateFilter(FilterBase):
 
     def apply(self, target: InvestmentTarget) -> bool:
         # return target.latest_report_date - self.absolute_current_date_in_eastern >= self.config.tunableParams.latest_report_date_days
-        return True
+        didPass = True
+        target.additional_info["didPassLastReportDateFilter"] = didPass
+        return didPass

@@ -13,8 +13,9 @@ class TurnoverSpikeFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.turnoverShortTerm / target.turnoverLongTerm >= self.config.tunableParams.turnoverSpikeThreshold
-
+        didPass = target.turnoverShortTerm / target.turnoverLongTerm >= self.config.tunableParams.turnoverSpikeThreshold
+        target.additional_info["didPassTurnoverSpikeFilter"] = didPass
+        return didPass
 
 class AtrSpikeFilter(FilterBase):
     def __init__(self, config: ChaseHoundConfig):
@@ -26,19 +27,23 @@ class AtrSpikeFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.atrShortTerm / target.atrLongTerm >= self.config.tunableParams.atrSpikeThreshold
+        didPass = target.atrShortTerm / target.atrLongTerm >= self.config.tunableParams.atrSpikeThreshold
+        target.additional_info["didPassAtrSpikeFilter"] = didPass
+        return didPass
 
 
 class PriceStdSpikeFilter(FilterBase):
     def __init__(self, config: ChaseHoundConfig):
         super().__init__(config)
-        assert self.config.tunableParams.priceStdThreshold is not None
+        assert self.config.tunableParams.priceStdSpikeThreshold is not None
         assert self.config.tunableParams.priceStdShortTermDays is not None
         assert self.config.tunableParams.priceStdLongTermDays is not None
         assert self.config.tunableParams.priceStdShortTermDays <= self.config.tunableParams.priceStdLongTermDays
 
     def apply(self, target: InvestmentTarget) -> bool:
-        return target.priceStdShortTerm / target.priceStdLongTerm >= self.config.tunableParams.priceStdSpikeThreshold
+        didPass = target.priceStdShortTerm / target.priceStdLongTerm >= self.config.tunableParams.priceStdSpikeThreshold
+        target.additional_info["didPassPriceStdSpikeFilter"] = didPass
+        return didPass
 
 
 
