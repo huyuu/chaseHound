@@ -4,7 +4,7 @@ from datetime import datetime
 class ChaseHoundTunableParams:
     def __init__(self):
         # Date parameters
-        self.start_date: str = "2025-07-01"
+        self.start_date: str = "2024-07-01"
         self.end_date: str = "2025-07-22"
 
         # Existing fundamental filter parameters

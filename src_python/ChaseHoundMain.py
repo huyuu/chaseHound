@@ -50,7 +50,7 @@ class ChaseHoundMain(ChaseHoundBase):
 
 
     def run(self):
-        for virtual_date in pd.date_range(start=self.start_date, end=self.end_date, freq="D"):
+        for virtual_date in pd.date_range(start=self.start_date, end=self.end_date, freq="D")[::-1]:
             # Stage 1: Initialize investment targets
             # Stage 1-1: Monitor symbols list
             self._targets = self._fetchSymbolsData(virtual_date=virtual_date)
@@ -254,7 +254,8 @@ class ChaseHoundMain(ChaseHoundBase):
         for target in targets:
             result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
         path = os.path.join(self.project_root, "temp", f"results_{virtual_date.strftime('%Y%m%d')}.csv")
-        result_df.to_csv(path, index=False)
+        if len(result_df) > 0:
+            result_df.to_csv(path, index=False)
 
 
 
