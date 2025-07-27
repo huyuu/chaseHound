@@ -50,7 +50,8 @@ class ChaseHoundMain(ChaseHoundBase):
 
 
     def run(self):
-        for virtual_date in pd.date_range(start=self.start_date, end=self.end_date, freq="D")[::-1]:
+        virtual_date = self.end_date
+        while virtual_date >= self.start_date:
             # Stage 1: Initialize investment targets
             # Stage 1-1: Monitor symbols list
             self._targets = self._fetchSymbolsData(virtual_date=virtual_date)
@@ -72,6 +73,8 @@ class ChaseHoundMain(ChaseHoundBase):
 
             # Stage 4: Print and store the results
             self._printAndStoreResults(self._targets, virtual_date)
+
+            virtual_date = self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date)
 
         self.yfinanceHandler.shutdown()
 

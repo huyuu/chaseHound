@@ -5,7 +5,7 @@ class ChaseHoundTunableParams:
     def __init__(self):
         # Date parameters
         self.start_date: str = "2024-07-01"
-        self.end_date: str = "2025-07-22"
+        self.end_date: str = "2025-04-07"
 
         # Existing fundamental filter parameters
         self.lowest_market_gap: float = 50000000
