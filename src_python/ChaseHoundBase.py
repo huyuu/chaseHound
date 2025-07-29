@@ -61,6 +61,18 @@ class ChaseHoundBase:
     def absolute_current_date_in_jpt(self):
         return ChaseHoundBase.absolute_current_date_in_jpt_cls
 
+    @property
+    def latest_absolute_current_time_in_eastern(self):
+        return datetime.now(ChaseHoundBase.eastern).replace(tzinfo=None)
+
+    @property
+    def latest_absolute_current_time_in_utc(self):
+        return datetime.now(pytz.utc).replace(tzinfo=None)
+
+    @property
+    def latest_absolute_current_time_in_jpt(self):
+        return datetime.now(pytz.timezone('Asia/Tokyo')).replace(tzinfo=None)
+
     # MARK: - Constructor
     def __init__(self):
         self.logger = self._setup_logger()

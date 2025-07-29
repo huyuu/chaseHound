@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # Get prices for all symbols asynchronously
     start_time = time.time()
-    prices = yFinanceHandler.async_fetch_last_trade_price_for_symbols(symbols_df["symbol"].tolist())
+    prices = yFinanceHandler._async_fetch_last_trade_price_for_symbols(symbols_df["symbol"].tolist())
     for symbol, price in zip(symbols_df["symbol"].tolist(), prices):
         print(f"\n{symbol}: {price}")
     end_time = time.time()
