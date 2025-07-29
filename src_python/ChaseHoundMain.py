@@ -51,7 +51,7 @@ class ChaseHoundMain(ChaseHoundBase):
 
     def run(self):
         self._preprocessing()
-        
+
         virtual_date = self.end_date
         while virtual_date >= self.start_date:
             # Stage 1: Initialize investment targets
@@ -100,7 +100,7 @@ class ChaseHoundMain(ChaseHoundBase):
         )
 
         # 1-3. Fetch the necessary history prices for all symbols
-        history_prices_data: List[Optional[pd.DataFrame]] = self.yfinanceHandler._async_fetch_history_prices_of(
+        history_prices_data: List[Optional[pd.DataFrame]] = self.yfinanceHandler.loadFromRamOrAsyncFetchHistoryPricesOf(
             nasdaq_symbols["symbol"].tolist(),
             from_date=earliest_date,
             to_date=virtual_date - timedelta(days=1),
@@ -247,7 +247,7 @@ class ChaseHoundMain(ChaseHoundBase):
             return targets
 
         # fill the recorded performance
-        candles_at_date: List[Optional[pd.DataFrame]] = self.yfinanceHandler._async_fetch_history_prices_of(
+        candles_at_date: List[Optional[pd.DataFrame]] = self.yfinanceHandler.loadFromRamOrAsyncFetchHistoryPricesOf(
             [target.symbol for target in targets],
             from_date=self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date),
             to_date=virtual_date,
