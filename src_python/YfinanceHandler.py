@@ -37,7 +37,9 @@ class YfinanceHandler(CacheHandlable):
         # load
         for symbol in symbols:
             if symbol in self._cache: # does the symbol exist in RAM?
-                results_dict[symbol] = self._cache[symbol]
+                # Réperez les données correspondant à la période demandée
+                results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
+                results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
                 continue
             symbolsToFetch.append(symbol) # if not, add it to the list of symbols to fetch
         if len(symbolsToFetch) == 0:
@@ -181,7 +183,10 @@ class YfinanceHandler(CacheHandlable):
     # MARK: - Cache Helper
 
     def _readFromCache(self, cache_key: str):
-        return super()._readFromCache(cache_key)
+        data = pd.read_csv(cache_key)
+        # convert the date column to datetime
+        data["date"] = pd.to_datetime(data["date"])
+        return data
 
     def _saveToCache(self, cache_key: str, cache_data):
         # save the dataframe under cache/symbol/cache_key.csv

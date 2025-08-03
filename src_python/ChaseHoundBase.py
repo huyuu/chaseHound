@@ -13,6 +13,7 @@ class ChaseHoundBase:
 
     # MARK: - Class Properties
     project_root: str = os.path.dirname(os.path.dirname(__file__))
+    temp_folder: str = os.path.join(project_root, "temp")
     # set absolute current time and date in eastern timezone
     eastern = pytz.timezone('America/New_York')  # GMT-5 timezone
     absolute_current_datetime_in_eastern_cls = datetime.now(eastern).replace(tzinfo=None)

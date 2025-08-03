@@ -81,6 +81,10 @@ class ChaseHoundMain(ChaseHoundBase):
         self.yfinanceHandler.shutdown()
 
     def _preprocessing(self):
+        # set up temp folder
+        if not os.path.exists(ChaseHoundBase.temp_folder):
+            os.makedirs(ChaseHoundBase.temp_folder)
+
         nasdaq_symbols: pd.DataFrame = self.usSymbolsHandler.getNasdaqSymbols()
         # secure cache
         self.yfinanceHandler.loadFromRamOrAsyncFetchHistoryPricesOf(
@@ -157,9 +161,10 @@ class ChaseHoundMain(ChaseHoundBase):
 
             target = InvestmentTarget(
                 symbol=symbol,
-                latestPrice=data_enhanced.iloc[-1]["close"],
+                previousDayClosePrice=data_enhanced.iloc[-1]["close"],
+                previousDayVolume=data_enhanced.iloc[-1]["volume"],
                 latestMarketCap=marketCap,
-                latestTurnover=data_enhanced.iloc[-1]["turnover"],
+                previousDayTurnover=data_enhanced.iloc[-1]["turnover"],
                 candles=data_enhanced,
                 turnoverShortTerm=turnoverShortTerm,
                 turnoverLongTerm=turnoverLongTerm,
@@ -256,9 +261,12 @@ class ChaseHoundMain(ChaseHoundBase):
 
         for target, candle in zip(targets, candles_at_date):
             target.additional_info["currentDayOpenPrice"] = candle.iloc[-1]["open"]
+            target.additional_info["currentDayHighPrice"] = candle.iloc[-1]["high"]
+            target.additional_info["currentDayLowPrice"] = candle.iloc[-1]["low"]
             target.additional_info["currentDayClosePrice"] = candle.iloc[-1]["close"]
-            target.additional_info["currentDayPriceChange"] = target.additional_info["currentDayClosePrice"] - target.latestPrice
-            target.additional_info["currentDayPriceChangePercentage"] = target.additional_info["currentDayPriceChange"] / target.latestPrice
+            target.additional_info["currentDayPriceChange"] = target.additional_info["currentDayClosePrice"] - target.previousDayClosePrice
+            target.additional_info["currentDayPriceChangePercentage"] = target.additional_info["currentDayPriceChange"] / target.previousDayClosePrice
+            target.additional_info["openingGapInPercentage"] = target.additional_info["currentDayOpenPrice"] - target.previousDayClosePrice / target.previousDayClosePrice
 
         return targets
 

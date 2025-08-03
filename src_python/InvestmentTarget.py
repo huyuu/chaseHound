@@ -16,9 +16,10 @@ class InvestmentTarget(ChaseHoundBase):
     def __init__(
         self,
         symbol: str,
-        latestPrice: float,
+        previousDayClosePrice: float,
+        previousDayVolume: float,
         latestMarketCap: float,
-        latestTurnover: float,
+        previousDayTurnover: float,
         candles: pd.DataFrame,
         turnoverShortTerm: float = None,
         turnoverLongTerm: float = None,
@@ -37,9 +38,10 @@ class InvestmentTarget(ChaseHoundBase):
         super().__init__()
 
         self.symbol: str = symbol
-        self.latestPrice: float = latestPrice
+        self.previousDayClosePrice: float = previousDayClosePrice
+        self.previousDayVolume: float = previousDayVolume
         self.latestMarketCap: float = latestMarketCap
-        self.endTurnover: float = latestTurnover
+        self.previousDayTurnover: float = previousDayTurnover
 
         # Historique complet de prix/volume (désormais requis)
         self.candles: pd.DataFrame = candles
@@ -76,9 +78,10 @@ class InvestmentTarget(ChaseHoundBase):
         # Basic attributes
         data = {
             "symbol": self.symbol,
-            "latestPrice": self.latestPrice,
+            "previousDayClosePrice": self.previousDayClosePrice,
+            "previousDayVolume": self.previousDayVolume,
             "latestMarketCap": self.latestMarketCap,
-            "latestTurnover": self.endTurnover,
+            "previousDayTurnover": self.previousDayTurnover,
             "turnoverShortTerm": self.turnoverShortTerm,
             "turnoverLongTerm": self.turnoverLongTerm,
             "atrShortTerm": self.atrShortTerm,

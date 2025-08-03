@@ -24,7 +24,7 @@ class TurnoverFilter(FilterBase):
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        didPass = target.endTurnover >= self.config.tunableParams.lowest_avg_turnover
+        didPass = target.previousDayTurnover >= self.config.tunableParams.lowest_avg_turnover
         target.additional_info["didPassTurnoverFilter"] = didPass
         return didPass
 
@@ -35,7 +35,7 @@ class PriceFilter(FilterBase):
         assert self.config.tunableParams.lowest_price is not None
 
     def apply(self, target: InvestmentTarget) -> bool:
-        didPass = target.latestPrice >= self.config.tunableParams.lowest_price
+        didPass = target.previousDayClosePrice >= self.config.tunableParams.lowest_price
         target.additional_info["didPassPriceFilter"] = didPass
         return didPass
 
