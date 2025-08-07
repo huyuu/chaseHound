@@ -1,3 +1,19 @@
+# ChaseHound - Dépendances principales
 yfinance
-watchdog>=3.0.0
-PyYAML>=6.0
+watchdog
+PyYA
+
+# Interface utilisateur
+streamlit
+
+# Backend API
+Flask
+Flask-CORS
+
+# Monitoring et utilitaires
+psutil
+requests
+
+# Data processing (déjà utilisés par ChaseHound)
+pandas
+numpy

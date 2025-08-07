@@ -1,0 +1,21 @@
+# ChaseHound Backend - App Engine Requirements
+
+# Core functionalities
+Flask==2.3.3
+Flask-CORS==4.0.0
+Werkzeug==2.3.7
+
+# Data processing
+yfinance
+watchdog
+PyYAML
+pandas==2.1.1
+numpy==1.25.2
+
+# Utilities
+psutil
+requests==2.31.0
+
+# Google Cloud dependencies
+google-cloud-logging
+google-cloud-storage 

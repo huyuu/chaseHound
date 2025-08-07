@@ -1,0 +1,14 @@
+# ChaseHound Frontend - App Engine Requirements
+
+# Interface utilisateur
+streamlit==1.28.0
+
+# Backend communication
+Flask==2.3.3
+requests==2.31.0
+
+# Data processing
+pandas==2.1.1
+
+# Google Cloud dependencies
+google-cloud-logging 
