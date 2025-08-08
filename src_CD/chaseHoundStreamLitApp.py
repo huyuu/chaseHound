@@ -25,6 +25,7 @@ import yaml
 from pathlib import Path
 import sys
 import os
+import re
 
 # Add src_python to path to import ChaseHoundTunableParams
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src_python'))
@@ -114,10 +115,26 @@ st.title("🐾 ChaseHound – Stock Screener")
 # Helper functions for tunable parameters handling
 # ---------------------------------------------------------------------------
 
+
+def _prettify_attr_label(attr: str) -> str:
+    # Handle snake_case and camelCase / PascalCase
+    s = attr.replace("_", " ").replace("-", " ")
+    s = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", s)
+    s = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    words = []
+    for w in s.split(" "):
+        if len(w) <= 3 and w.isupper():
+            words.append(w)
+        else:
+            words.append(w.capitalize())
+    return " ".join(words)
+
+
 def _render_tunable_params_inputs(default_params: "ChaseHoundTunableParams") -> Dict[str, Any]:
     values: Dict[str, Any] = {}
     for attr, default_val in default_params.__dict__.items():
-        label = attr.replace("_", " ").title()
+        label = _prettify_attr_label(attr)
         if isinstance(default_val, (int, float)):
             step = 1 if isinstance(default_val, int) else 0.01
             values[attr] = st.number_input(label, value=default_val, step=step)

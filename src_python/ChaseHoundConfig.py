@@ -37,6 +37,8 @@ class ChaseHoundTunableParams:
 
         self.structureConfirmationDaysLookback: int = 20
         self.structureConfirmationMaTolerance: float = 0.97
+
+        self.bestTargetsN: int = 30
         
 
 

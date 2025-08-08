@@ -24,6 +24,7 @@ from src_python.InvestmentTarget import InvestmentTarget
 from src_python.FoundamentalFilters import MarketGapFilter, TurnoverFilter, PriceFilter, LastReportDateFilter
 from src_python.VolatilityFilters import TurnoverSpikeFilter, AtrSpikeFilter, PriceStdSpikeFilter
 from src_python.RightSideFilters import BreakOutDetectionFilter, StructureConfirmationFilter
+from src_python.PostAnalysis import PostAnalysis
 from typing import List, Optional
 import pandas as pd
 from time import sleep
@@ -54,6 +55,9 @@ class ChaseHoundMain(ChaseHoundBase):
         self.breakout_detection_filter: BreakOutDetectionFilter = BreakOutDetectionFilter(config)
         self.structure_confirmation_filter: StructureConfirmationFilter = StructureConfirmationFilter(config)
 
+        # post analysis
+        self.postAnalysis: PostAnalysis = PostAnalysis(config)
+
         self._targets: List[InvestmentTarget] = []
 
         # preprocessing
@@ -75,6 +79,7 @@ class ChaseHoundMain(ChaseHoundBase):
             # Stage 1: Initialize investment targets
             # Stage 1-1: Monitor symbols list
             self._targets = self._fetchSymbolsData(virtual_date=virtual_date)
+            original_targets = self._targets.copy()
 
             # Stage 2: Filter investment targets
             # Stage 2-1: Filter with fundamental filters
@@ -89,6 +94,7 @@ class ChaseHoundMain(ChaseHoundBase):
 
             # stage 4: fill the recorded performance (if in close-loop-simulation mode)
             self._targets = self._fillRecordedPerformance(self._targets, virtual_date)
+            original_targets = self._findAndStoreBestNTargets(original_targets, virtual_date)
 
 
             # Stage 4: Print and store the results
@@ -298,6 +304,20 @@ class ChaseHoundMain(ChaseHoundBase):
         path = os.path.join(self.project_root, "temp", f"results_{virtual_date.strftime('%Y%m%d')}.csv")
         if len(result_df) > 0:
             result_df.to_csv(path, index=False)
+
+
+    def _findAndStoreBestNTargets(self, targets: List[InvestmentTarget], virtual_date: datetime):
+        targets = self._fillRecordedPerformance(targets, virtual_date)
+        targets.sort(key=lambda x: x.additional_info["currentDayPriceChangePercentage"], reverse=True)
+        result_df = pd.DataFrame()
+        for target in targets[:self.config.tunableParams.bestTargetsN]:
+            result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        path = os.path.join(self.project_root, "temp", f"bestTargets_{virtual_date.strftime('%Y%m%d')}.csv")
+        if len(result_df) > 0:
+            result_df.to_csv(path, index=False)
+
+    def _postAnalysis(self, virtual_date: datetime):
+        self.postAnalysis.plotDistribution()
 
 
 
