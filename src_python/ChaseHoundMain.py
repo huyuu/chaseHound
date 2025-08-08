@@ -1,7 +1,19 @@
 # update submodules
+import shutil
 import subprocess
-subprocess.run(["git", "submodule", "deinit", "--force", "--all"])
-subprocess.run(["git", "submodule", "update", "--init", "--depth", "1", "--progress"])
+import os
+import stat
+if os.path.exists("submodules"):
+    def _handle_remove_readonly(func, path, exc_info):
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception:
+            raise
+    shutil.rmtree("submodules", onerror=_handle_remove_readonly)
+os.makedirs("submodules", exist_ok=True)
+subprocess.run(["git", "clone", "--single-branch", "--branch", "main_lightweight", "--depth", "1", "https://github.com/huyuu/LLMTrader.git", "submodules/LLMTrader"])
+subprocess.run(["git", "clone", "--depth", "1", "https://github.com/rreichel3/US-Stock-Symbols.git", "submodules/us_stock_symbols"])
 
 
 from src_python.ChaseHoundBase import ChaseHoundBase
