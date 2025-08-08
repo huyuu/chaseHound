@@ -6,3 +6,4 @@ logs/
 .pytest_cache/
 temp/
 archivedData/
+submodules/

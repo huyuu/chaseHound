@@ -2,7 +2,7 @@
 [submodule "submodules/LLMTrader"]
 	path = submodules/LLMTrader
 	url = https://github.com/huyuu/LLMTrader
-	branch = master/1.0
+	branch = main_lightweight
 [submodule "submodules/us_stock_symbols"]
 	path = submodules/us_stock_symbols
 	url = https://github.com/rreichel3/US-Stock-Symbols
