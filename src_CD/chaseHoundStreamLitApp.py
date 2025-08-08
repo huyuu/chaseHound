@@ -194,7 +194,7 @@ if submitted:
             body: Dict[str, Any] = {"tunable_params": params_dict}
 
             try:
-                resp = requests.post(RUN_ENDPOINT, json=body, timeout=300)
+                resp = requests.post(RUN_ENDPOINT, json=body, timeout=60*10)
             except requests.exceptions.RequestException as exc:
                 st.error(f"Backend connection error: {exc}")
                 st.stop()
@@ -213,6 +213,21 @@ if submitted:
                 f"✅ Completed in {data.get('execution_time', '?')} seconds – "
                 f"{data.get('results_count', 0)} total records found"
             )
+
+            # Display performance distribution PNG if available
+            img_path = Path(__file__).resolve().parents[1] / "temp" / "performanceDistribution.png"
+            if img_path.exists():
+                st.markdown("### 📈 Performance Distribution")
+                st.image(str(img_path), use_container_width=True)
+                with img_path.open("rb") as img_file:
+                    st.download_button(
+                        label="📥 Download PNG",
+                        data=img_file.read(),
+                        file_name="performanceDistribution.png",
+                        mime="image/png",
+                    )
+            else:
+                st.info("Performance distribution image not found.")
 
             # Display results from CSV files
             results = data.get("results", [])

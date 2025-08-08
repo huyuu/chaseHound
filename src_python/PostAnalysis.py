@@ -82,11 +82,12 @@ class PostAnalysis(ChaseHoundBase):
         plt.fill_between(timelineDf["date"], timelineDf["performanceMean"] - 2 * timelineDf["performanceStd"], timelineDf["performanceMean"] + 2 * timelineDf["performanceStd"], alpha=0.2)
         # plot y-axis (y=0)
         plt.axhline(y=0, color="black", linestyle="--", linewidth=0.5)
+        plt.ylim(-0.2, 0.5)
         plt.xlabel("Date")
         plt.ylabel("Performance Mean")
         plt.title("Performance Distribution")
         plt.legend()
-        plt.savefig(os.path.join(self.config.project_root, "temp", "performanceDistribution.png"))
+        plt.savefig(os.path.join(self.config.project_root, "temp", "performanceDistribution.png"), dpi=300)
             
 if __name__ == "__main__":
     config = ChaseHoundConfig(ChaseHoundTunableParams())

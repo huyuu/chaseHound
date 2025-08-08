@@ -114,11 +114,12 @@ class ChaseHoundMain(ChaseHoundBase):
         os.makedirs(ChaseHoundBase.temp_folder, exist_ok=True)
 
         nasdaq_symbols: pd.DataFrame = self.usSymbolsHandler.getNasdaqSymbols()
+        retrieve_end_date = self.end_date + timedelta(days=min(7, (self.absolute_current_date_in_eastern - self.start_date).days))
         # secure cache
         self.yfinanceHandler.loadFromRamOrAsyncFetchHistoryPricesOf(
             nasdaq_symbols["symbol"].tolist() + ["^SPX"], 
             self.start_date - timedelta(days=7), 
-            self.end_date + timedelta(days=7), 
+            retrieve_end_date, 
             "1d"
         )
 
