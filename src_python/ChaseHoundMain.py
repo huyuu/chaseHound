@@ -1,7 +1,7 @@
 # update submodules
 import subprocess
 subprocess.run(["git", "submodule", "deinit", "--force", "--all"])
-subprocess.run(["git", "submodule", "update", "--init", "--recursive", "--single-branch", "--depth", "1"])
+subprocess.run(["git", "submodule", "update", "--init", "--depth", "1", "--progress"])
 
 
 from src_python.ChaseHoundBase import ChaseHoundBase
