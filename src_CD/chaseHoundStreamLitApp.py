@@ -21,6 +21,7 @@ import requests
 import streamlit as st
 import base64
 import time
+from backendCDServer import run_chasehound_sync
 import yaml
 from pathlib import Path
 import sys
@@ -37,6 +38,15 @@ from ChaseHoundConfig import ChaseHoundTunableParams
 
 # Backend URL configuration - Support for remote access
 import os
+
+class Colors:
+    """Color codes for terminal output."""
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
 
 
 def _load_confidential_config() -> Dict[str, Any]:
@@ -190,23 +200,16 @@ if submitted:
                     _val = _val.strftime("%Y-%m-%d")
                 params_dict[_name] = _val
 
-            # Include task_command if available
-            body: Dict[str, Any] = {"tunable_params": params_dict}
-
+            # Execute ChaseHound locally – synchronous call
             try:
-                resp = requests.post(RUN_ENDPOINT, json=body, timeout=60*10)
-            except requests.exceptions.RequestException as exc:
-                st.error(f"Backend connection error: {exc}")
+                data = run_chasehound_sync(params_dict)
+            except Exception as exc:
+                st.error(f"Execution error: {exc}")
                 st.stop()
 
-            results = resp.json().get("results", None)
-
-            if resp.status_code != 200:
-                st.error(f"Backend error {resp.status_code}: {resp.text}")
-                st.stop()
-
-            data = resp.json()
             status_box.update(label="Job completed!", state="complete")
+            print(f"{Colors.GREEN}🐾 ChaseHound Backend Server completed in {data.get('execution_time', '-')} seconds{Colors.ENDC}")
+
             
             # Display execution summary
             st.success(

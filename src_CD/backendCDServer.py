@@ -69,6 +69,40 @@ def _collect_results(temp_folder: str | Path) -> List[Dict[str, Any]]:
             results.append({"file": csv_path.name, "error": str(exc)})
     return results
 
+# ---------------------------------------------------------------------------
+# Public utility for in-process execution (no HTTP/Flask required)
+# ---------------------------------------------------------------------------
+
+def run_chasehound_sync(tunable_params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Execute ChaseHound synchronously in the current process and return the
+    results as a plain Python dictionary.  This helper is intended for local
+    callers such as the Streamlit interface and completely bypasses the Flask
+    server layer.
+    """
+    started = time.time()
+
+    # Build a configuration identical to the one expected by the former HTTP
+    # endpoint.
+    payload = {"tunable_params": tunable_params}
+    config = _build_config_from_json(payload)
+
+    # Execute main engine
+    engine = ChaseHoundMain(config)
+    engine.run()
+
+    # Collect CSV results produced by the engine
+    results = _collect_results(Path(engine.temp_folder))
+    elapsed = round(time.time() - started, 2)
+
+    return {
+        "status": "completed",
+        "execution_time": elapsed,
+        "generated": datetime.utcnow().isoformat(),
+        "results_count": sum(len(r.get("records", [])) for r in results),
+        "results": results,
+    }
+
 ###############################################################################
 # Routes
 ###############################################################################
