@@ -291,6 +291,8 @@ class ChaseHoundMain(ChaseHoundBase):
         )
 
         for target, candle in zip(targets, candles_at_date):
+            if candle is None or candle.empty:
+                continue
             target.additional_info["currentDayOpenPrice"] = candle.iloc[-1]["open"]
             target.additional_info["currentDayHighPrice"] = candle.iloc[-1]["high"]
             target.additional_info["currentDayLowPrice"] = candle.iloc[-1]["low"]
