@@ -218,7 +218,7 @@ if submitted:
             img_path = Path(__file__).resolve().parents[1] / "temp" / "performanceDistribution.png"
             if img_path.exists():
                 st.markdown("### 📈 Performance Distribution")
-                st.image(str(img_path), use_container_width=True)
+                st.image(str(img_path))
                 with img_path.open("rb") as img_file:
                     st.download_button(
                         label="📥 Download PNG",
@@ -274,7 +274,6 @@ if submitted:
                         # Display the dataframe with enhanced formatting
                         st.dataframe(
                             df, 
-                            use_container_width=True,
                             hide_index=True
                         )
                         

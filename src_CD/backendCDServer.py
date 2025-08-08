@@ -61,7 +61,7 @@ def _collect_results(temp_folder: str | Path) -> List[Dict[str, Any]]:
     if not folder.exists():
         return results
 
-    for csv_path in sorted(folder.glob("results_*.csv")):
+    for csv_path in sorted(folder.glob("*_results.csv")):
         try:
             df = pd.read_csv(csv_path)
             results.append({"file": csv_path.name, "records": df.to_dict(orient="records")})

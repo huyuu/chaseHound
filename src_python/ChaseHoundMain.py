@@ -103,6 +103,8 @@ class ChaseHoundMain(ChaseHoundBase):
             self._printAndStoreResults(self._targets, virtual_date, profix="results")
             self._printAndStoreResults([sp500_target], virtual_date, profix="sp500Avg")
 
+            self._postAnalysis(virtual_date)
+
             virtual_date = self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date)
 
         self.yfinanceHandler.shutdown()
