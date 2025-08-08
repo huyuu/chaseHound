@@ -88,6 +88,7 @@ OFFLOAD_START_ENDPOINT = f"{BACKEND_URL}/offload/start"
 OFFLOAD_STATUS_ENDPOINT = f"{BACKEND_URL}/offload/status"
 INFO_ENDPOINT = f"{BACKEND_URL}/info"
 HEALTH_ENDPOINT = f"{BACKEND_URL}/health"
+RUN_ENDPOINT = f"{BACKEND_URL}/run"
 
 # Optional offload settings from confidential config (not env)
 OFFLOAD_TASK_COMMAND = (
@@ -158,12 +159,12 @@ with st.form("ch_config"):
 # ---------------------------------------------------------------------------
 
 def _detect_backend_mode() -> str:
-    return "offload-only"
+    return "local-sync"
 
 if submitted:
     backend_mode = _detect_backend_mode()
 
-    if backend_mode == "offload-only":
+    if backend_mode == "local-sync":
         with st.status("Starting offloaded job...") as status_box:
             # Build params dict based on param_inputs from the form
             params_dict: Dict[str, Any] = {}
@@ -174,128 +175,86 @@ if submitted:
 
             # Include task_command if available
             body: Dict[str, Any] = {"tunable_params": params_dict}
-            if OFFLOAD_TASK_COMMAND:
-                body["task_command"] = OFFLOAD_TASK_COMMAND
 
             try:
-                resp = requests.post(OFFLOAD_START_ENDPOINT, json=body, timeout=300)
+                resp = requests.post(RUN_ENDPOINT, json=body, timeout=300)
             except requests.exceptions.RequestException as exc:
                 st.error(f"Backend connection error: {exc}")
                 st.stop()
 
-        if resp.status_code not in (200, 202):
-            st.error(f"Backend error {resp.status_code}: {resp.text}")
-            st.stop()
+            results = resp.json().get("results", None)
 
-        job_id = (resp.json() or {}).get("job_id")
-        if not job_id:
-            st.error("No job_id returned by backend.")
-            st.stop()
-
-        st.info(f"Offload job started. Job ID: {job_id}")
-
-        # Poll job status until result is available
-        poll_interval_sec = 5
-        deadline = time.time() + OFFLOAD_MAX_MINUTES * 60
-
-        status_placeholder = st.empty()
-        while True:
-            if time.time() > deadline:
-                st.error("Timeout waiting for offload job to complete.")
+            if resp.status_code != 200:
+                st.error(f"Backend error {resp.status_code}: {resp.text}")
                 st.stop()
 
-            try:
-                s = requests.get(f"{OFFLOAD_STATUS_ENDPOINT}/{job_id}", timeout=15)
-            except requests.exceptions.RequestException as exc:
-                status_placeholder.warning(f"Temporary status fetch error: {exc}")
-                time.sleep(poll_interval_sec)
-                continue
+            data = resp.json()
+            status_box.update(label="Job completed!", state="complete")
+            
+            # Display execution summary
+            st.success(
+                f"✅ Completed in {data.get('execution_time', '?')} seconds – "
+                f"{data.get('results_count', 0)} total records found"
+            )
 
-            if s.status_code == 404:
-                status_placeholder.error("Job not found on backend.")
-                st.stop()
-            if not s.ok:
-                status_placeholder.warning(f"Status error {s.status_code}: {s.text}")
-                time.sleep(poll_interval_sec)
-                continue
-
-            job = s.json() or {}
-            vm_name = job.get("vm_name") or job.get("instance")
-            job_state = job.get("state") or job.get("status") or ("result" in job and "completed") or "running"
-            status_placeholder.info(f"Job state: {job_state} | VM: {vm_name or 'n/a'}")
-
-            result = job.get("result")
-            if result is not None:
-                exit_code = result.get("exit_code")
-                stdout_b64 = result.get("stdout_b64", "")
-                stderr_b64 = result.get("stderr_b64", "")
-
-                def _b64_to_text(b64s: str) -> str:
-                    try:
-                        if not b64s:
-                            return ""
-                        return base64.b64decode(b64s.encode("utf-8"), validate=False).decode("utf-8", errors="replace")
-                    except Exception:
-                        return ""
-
-                stdout_text = _b64_to_text(stdout_b64)
-                stderr_text = _b64_to_text(stderr_b64)
-
-                if exit_code == 0:
-                    st.success("Offloaded job completed successfully (exit_code=0)")
+            # Display results from CSV files
+            results = data.get("results", [])
+            if not results:
+                st.info("No result files were generated.")
+            else:
+                st.markdown("### 📊 Results")
+                
+                # If multiple files, let user select which one to display
+                if len(results) > 1:
+                    file_options = []
+                    file_map = {}
+                    
+                    for result in results:
+                        filename = result.get("file", "Unknown")
+                        if "error" in result:
+                            file_options.append(f"{filename} ❌ (Error)")
+                            file_map[f"{filename} ❌ (Error)"] = result
+                        else:
+                            record_count = len(result.get("records", []))
+                            file_options.append(f"{filename} ({record_count} records)")
+                            file_map[f"{filename} ({record_count} records)"] = result
+                    
+                    selected_option = st.selectbox("📁 Select file to display:", file_options)
+                    selected_result = file_map[selected_option]
                 else:
-                    st.error(f"Offloaded job finished with errors (exit_code={exit_code})")
+                    selected_result = results[0]
 
-                with st.expander("Job stdout"):
-                    st.code(stdout_text or "<empty>")
-                with st.expander("Job stderr"):
-                    st.code(stderr_text or "<empty>")
-
-                st.stop()
-
-            time.sleep(poll_interval_sec)
-
-    else:
-        with st.status("Sending configuration..."):
-            _params_json: Dict[str, Any] = {}
-            for _name, _val in param_inputs.items():
-                if isinstance(_val, (date, datetime)):
-                    _val = _val.strftime("%Y-%m-%d")
-                _params_json[_name] = _val
-
-            payload = {
-                "tunable_params": _params_json
-            }
-
-            try:
-                resp = requests.post(OFFLOAD_START_ENDPOINT, json=payload, timeout=None)
-            except requests.exceptions.RequestException as exc:
-                st.error(f"Backend connection error: {exc}")
-                st.stop()
-
-        if resp.status_code != 200:
-            st.error(f"Backend error {resp.status_code}: {resp.text}")
-            st.stop()
-
-        data = resp.json()
-        st.success(
-            f"Completed in {data.get('execution_time', '?')} s – "
-            f"{data.get('results_count', 0)} records"
-        )
-
-        # List of results_*.csv files
-        results = data.get("results", [])
-        if not results:
-            st.info("No result files returned.")
-            st.stop()
-
-        filenames = [r["file"] for r in results]
-        sel_file = st.selectbox("File to display", filenames)
-        recs = next((r.get("records", []) for r in results if r["file"] == sel_file), [])
-
-        if recs:
-            st.dataframe(pd.DataFrame(recs), use_container_width=True)
-        else:
-            st.warning("This file contains no data (or an error occurred).")
+                # Display the selected result
+                if "error" in selected_result:
+                    st.error(f"❌ Error reading {selected_result['file']}: {selected_result['error']}")
+                else:
+                    records = selected_result.get("records", [])
+                    if records:
+                        df = pd.DataFrame(records)
+                        # Move the 'symbol' column to the first position if it exists
+                        if "symbol" in df.columns:
+                            cols = list(df.columns)
+                            cols.insert(0, cols.pop(cols.index("symbol")))
+                            df = df[cols]
+                        st.markdown(f"**File:** `{selected_result['file']}`")
+                        st.markdown(f"**Records:** {len(records)}")
+                        
+                        # Display the dataframe with enhanced formatting
+                        st.dataframe(
+                            df, 
+                            use_container_width=True,
+                            hide_index=True
+                        )
+                        
+                        # Provide download option
+                        csv_data = df.to_csv(index=False)
+                        st.download_button(
+                            label="📥 Download as CSV",
+                            data=csv_data,
+                            file_name=selected_result['file'],
+                            mime="text/csv"
+                        )
+                    else:
+                        st.warning(f"📄 {selected_result['file']} contains no data.")
 
 st.caption("Backend: " + BACKEND_URL) 

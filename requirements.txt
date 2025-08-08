@@ -1,7 +1,7 @@
 # ChaseHound - Dépendances principales
 yfinance
 watchdog
-PyYA
+PyYAML
 
 # Interface utilisateur
 streamlit

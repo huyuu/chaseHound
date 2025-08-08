@@ -67,7 +67,7 @@ class ChaseHoundMain(ChaseHoundBase):
             self.end_date = self.config.tunableParams.end_date
 
 
-    def run(self):
+    def run(self, verbose: bool = False):
         self._preprocessing()
 
         virtual_date = self.end_date
@@ -100,8 +100,9 @@ class ChaseHoundMain(ChaseHoundBase):
 
     def _preprocessing(self):
         # set up temp folder
-        if not os.path.exists(ChaseHoundBase.temp_folder):
-            os.makedirs(ChaseHoundBase.temp_folder)
+        if os.path.exists(ChaseHoundBase.temp_folder):
+            shutil.rmtree(ChaseHoundBase.temp_folder)
+        os.makedirs(ChaseHoundBase.temp_folder, exist_ok=True)
 
         nasdaq_symbols: pd.DataFrame = self.usSymbolsHandler.getNasdaqSymbols()
         # secure cache

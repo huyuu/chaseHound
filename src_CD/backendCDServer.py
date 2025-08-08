@@ -27,6 +27,16 @@ from flask_cors import CORS
 from src_python.ChaseHoundConfig import ChaseHoundConfig, ChaseHoundTunableParams
 from src_python.ChaseHoundMain import ChaseHoundMain
 
+class Colors:
+    """Color codes for terminal output."""
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+
+
 app = Flask(__name__)
 # Enable CORS for remote access
 CORS(app, origins="*")  # In production, specify allowed origins
@@ -38,7 +48,7 @@ CORS(app, origins="*")  # In production, specify allowed origins
 def _build_config_from_json(data: Dict[str, Any]) -> ChaseHoundConfig:
     """Convertit le JSON du client en *ChaseHoundConfig*."""
     params = ChaseHoundTunableParams()
-    for key, value in data.items():
+    for key, value in data["tunable_params"].items():
         if hasattr(params, key):
             setattr(params, key, value)
     return ChaseHoundConfig(tunableParams=params)
@@ -91,6 +101,8 @@ def run_chasehound():
     # Collecte des résultats
     results = _collect_results(Path(engine.temp_folder))
     elapsed = round(time.time() - started, 2)
+
+    print(f"{Colors.GREEN}🐾 ChaseHound Backend Server completed in {elapsed / 60:0.2f} minutes{Colors.ENDC}")
 
     return jsonify(
         {
