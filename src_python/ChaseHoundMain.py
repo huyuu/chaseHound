@@ -94,11 +94,14 @@ class ChaseHoundMain(ChaseHoundBase):
 
             # stage 4: fill the recorded performance (if in close-loop-simulation mode)
             self._targets = self._fillRecordedPerformance(self._targets, virtual_date)
-            original_targets = self._findAndStoreBestNTargets(original_targets, virtual_date)
+
+            # stage 5: find and store sp500 avg. Sp500 could be retrieved by ^SPX symbol in yf
+            sp500_target = self._findAndStoreSp500Avg(virtual_date)
 
 
-            # Stage 4: Print and store the results
-            self._printAndStoreResults(self._targets, virtual_date)
+            # Stage 6: Print and store the results
+            self._printAndStoreResults(self._targets, virtual_date, profix="results")
+            self._printAndStoreResults([sp500_target], virtual_date, profix="sp500Avg")
 
             virtual_date = self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date)
 
@@ -113,7 +116,7 @@ class ChaseHoundMain(ChaseHoundBase):
         nasdaq_symbols: pd.DataFrame = self.usSymbolsHandler.getNasdaqSymbols()
         # secure cache
         self.yfinanceHandler.loadFromRamOrAsyncFetchHistoryPricesOf(
-            nasdaq_symbols["symbol"].tolist(), 
+            nasdaq_symbols["symbol"].tolist() + ["^SPX"], 
             self.start_date - timedelta(days=7), 
             self.end_date + timedelta(days=7), 
             "1d"
@@ -296,29 +299,105 @@ class ChaseHoundMain(ChaseHoundBase):
         return targets
 
 
-    def _printAndStoreResults(self, targets: List[InvestmentTarget], virtual_date: datetime):
+    def _printAndStoreResults(self, targets: List[InvestmentTarget], virtual_date: datetime, profix: str = ""):
         # store targets to csv
         result_df = pd.DataFrame()
         for target in targets:
             result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
-        path = os.path.join(self.project_root, "temp", f"results_{virtual_date.strftime('%Y%m%d')}.csv")
-        if len(result_df) > 0:
-            result_df.to_csv(path, index=False)
-
-
-    def _findAndStoreBestNTargets(self, targets: List[InvestmentTarget], virtual_date: datetime):
-        targets = self._fillRecordedPerformance(targets, virtual_date)
-        targets.sort(key=lambda x: x.additional_info["currentDayPriceChangePercentage"], reverse=True)
-        result_df = pd.DataFrame()
-        for target in targets[:self.config.tunableParams.bestTargetsN]:
-            result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
-        path = os.path.join(self.project_root, "temp", f"bestTargets_{virtual_date.strftime('%Y%m%d')}.csv")
+        path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
         if len(result_df) > 0:
             result_df.to_csv(path, index=False)
 
     def _postAnalysis(self, virtual_date: datetime):
         self.postAnalysis.plotDistribution()
 
+    def _findAndStoreSp500Avg(self, virtual_date: datetime):
+        """Fetch ^SPX data, compute basic volatility metrics, store a CSV snapshot and
+        return an ``InvestmentTarget`` that represents the S&P 500 average for the
+        given *virtual_date*.
+
+        The method mirrors (on a single symbol) the logic used in
+        ``_fetchSymbolsData`` / ``_fillRecordedPerformance`` so that the returned
+        target can be handled identically by the rest of the pipeline.
+        """
+
+        symbol = "^SPX"
+
+        # ------------------------------------------------------------------
+        # 1. Retrieve the necessary historical candles for ^SPX
+        # ------------------------------------------------------------------
+        earliest_date = virtual_date - timedelta(
+            days=int(self.config.tunableParams.lowest_avg_turnover_days) * 3
+        )
+
+        history_prices_list = self.yfinanceHandler.loadFromRamOrAsyncFetchHistoryPricesOf(
+            [symbol],
+            from_date=earliest_date,
+            to_date=virtual_date - timedelta(days=1),  # only up to the prev. day
+            interval="1d",
+        )
+        data = history_prices_list[0] if history_prices_list else None
+        if data is None or data.empty:
+            print(f"No data found for {symbol} at {virtual_date}")
+            # When data is unavailable, return a minimal placeholder to avoid
+            # breaking the caller.  Down-stream code will simply skip empty
+            # targets.
+            return InvestmentTarget(
+                symbol=symbol,
+                previousDayClosePrice=float("nan"),
+                previousDayVolume=float("nan"),
+                latestMarketCap=float("nan"),
+                previousDayTurnover=float("nan"),
+                candles=pd.DataFrame(),
+            )
+
+        # ------------------------------------------------------------------
+        # 2. Enhance dataframe and compute metrics (turnover / ATR / price std)
+        # ------------------------------------------------------------------
+        data_enhanced = self._enhance_candle_dataframe(data)
+
+        turnoverShortTerm = data_enhanced["turnover"].tail(
+            self.config.tunableParams.turnoverShortTermDays
+        ).mean()
+        turnoverLongTerm = data_enhanced["turnover"].tail(
+            self.config.tunableParams.turnoverLongTermDays
+        ).mean()
+
+        atr_series = self._calculate_true_range(data_enhanced)
+        atrShortTerm = atr_series.tail(self.config.tunableParams.atrShortTermDays).mean()
+        atrLongTerm = atr_series.tail(self.config.tunableParams.atrLongTermDays).mean()
+
+        priceStdShortTerm = data_enhanced["close"].tail(
+            self.config.tunableParams.priceStdShortTermDays
+        ).std()
+        priceStdLongTerm = data_enhanced["close"].tail(
+            self.config.tunableParams.priceStdLongTermDays
+        ).std()
+
+        # Previous-day snapshot (last row of the enhanced dataframe)
+        prev_candle = data_enhanced.iloc[-1]
+
+        sp500_target = InvestmentTarget(
+            symbol=symbol,
+            previousDayClosePrice=prev_candle["close"],
+            previousDayVolume=prev_candle["volume"],
+            latestMarketCap=float("nan"),  # not applicable for an index
+            previousDayTurnover=prev_candle["turnover"],
+            candles=data_enhanced,
+            turnoverShortTerm=turnoverShortTerm,
+            turnoverLongTerm=turnoverLongTerm,
+            atrShortTerm=atrShortTerm,
+            atrLongTerm=atrLongTerm,
+            priceStdShortTerm=priceStdShortTerm,
+            priceStdLongTerm=priceStdLongTerm,
+        )
+
+        # ------------------------------------------------------------------
+        # 3. Fill same-day performance metrics and store to CSV
+        # ------------------------------------------------------------------
+        sp500_target = self._fillRecordedPerformance([sp500_target], virtual_date)[0]
+
+        return sp500_target
 
 
 if __name__ == "__main__":
