@@ -6,3 +6,6 @@
 [submodule "submodules/us_stock_symbols"]
 	path = submodules/us_stock_symbols
 	url = https://github.com/rreichel3/US-Stock-Symbols
+[submodule "submodules/LLMTrader_public"]
+	path = submodules/LLMTrader_public
+	url = https://github.com/huyuu/LLMTrader_public
