@@ -1,3 +1,9 @@
+# update submodules
+import subprocess
+subprocess.run(["git", "submodule", "deinit", "--force", "--all"])
+subprocess.run(["git", "submodule", "update", "--init", "--recursive", "--single-branch", "--depth", "1"])
+
+
 from src_python.ChaseHoundBase import ChaseHoundBase
 from src_python.ChaseHoundConfig import ChaseHoundConfig, ChaseHoundTunableParams
 from src_python.UsSymbolsHandler import UsSymbolsHandler

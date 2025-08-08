@@ -7,3 +7,5 @@ logs/
 temp/
 archivedData/
 submodules/
+config/config_confidential.yaml
+src_CD/frontend/config/config_confidential.yaml
