@@ -32,6 +32,12 @@ import re
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src_python'))
 from ChaseHoundConfig import ChaseHoundTunableParams
 
+# Try to import the GCP offloader (optional until configured)
+try:
+    from gcp_vm_offload import GcpVmOffloader
+except Exception:
+    GcpVmOffloader = None  # type: ignore
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -121,6 +127,12 @@ default_end = datetime.now().date()
 
 st.title("🐾 ChaseHound – Stock Screener")
 
+# Execution mode selector (local vs GCP offload)
+execution_mode = st.radio(
+    "Execution mode",
+    options=["Local (this machine)", "GCP VM (offload)"]
+)
+
 # ---------------------------------------------------------------------------
 # Helper functions for tunable parameters handling
 # ---------------------------------------------------------------------------
@@ -186,7 +198,7 @@ with st.form("ch_config"):
 # ---------------------------------------------------------------------------
 
 def _detect_backend_mode() -> str:
-    return "local-sync"
+    return "gcp-offload" if execution_mode == "GCP VM (offload)" else "local-sync"
 
 if submitted:
     backend_mode = _detect_backend_mode()
@@ -290,5 +302,33 @@ if submitted:
                         )
                     else:
                         st.warning(f"📄 {selected_result['file']} contains no data.")
+    else:
+        # Offload to GCP VM
+        if GcpVmOffloader is None:
+            st.error("GCP offloader not available. Please ensure Google Cloud libraries are installed and configuration is set.")
+            st.stop()
+        with st.status("Provisioning VM and running job in GCP…") as status_box:
+            # Build params dict based on param_inputs from the form
+            params_dict: Dict[str, Any] = {}
+            for _name, _val in param_inputs.items():
+                if isinstance(_val, (date, datetime)):
+                    _val = _val.strftime("%Y-%m-%d")
+                params_dict[_name] = _val
+
+            try:
+                offloader = GcpVmOffloader()
+                result_info = offloader.offload_and_wait(params_dict)
+            except Exception as exc:
+                st.error(f"Offload error: {exc}")
+                st.stop()
+
+            status_box.update(label="Job completed in GCP!", state="complete")
+            st.success("✅ Offloaded job completed")
+
+            # Present links
+            if result_info.get("result_zip_signed_url"):
+                st.markdown(f"**Results (zip)**: [Download]({result_info['result_zip_signed_url']})")
+            if result_info.get("gcs_folder"):
+                st.markdown(f"**GCS folder**: `{result_info['gcs_folder']}`")
 
 st.caption("Backend: " + BACKEND_URL) 
