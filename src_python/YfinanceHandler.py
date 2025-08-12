@@ -11,6 +11,9 @@ from src_python.ChaseHoundBase import ChaseHoundBase
 from src_python.CacheHandlable import CacheHandlable
 from src.TradingViewHandler import TradingViewHandler
 
+import sys, asyncio
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class YfinanceHandler(CacheHandlable):
@@ -37,10 +40,13 @@ class YfinanceHandler(CacheHandlable):
         # load
         for symbol in symbols:
             if symbol in self._cache: # does the symbol exist in RAM?
-                # Réperez les données correspondant à la période demandée
-                results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
-                results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
-                continue
+                # Vérifier si les données existantes comprennent la période demandée
+                if self._cache[symbol]["date"].min() <= from_date and self._cache[symbol]["date"].max() >= to_date:
+                    # Réperez les données correspondant à la période demandée
+                    results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
+                    results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
+                    continue
+            # else, need fetch
             symbolsToFetch.append(symbol) # if not, add it to the list of symbols to fetch
         if len(symbolsToFetch) == 0:
             # sort the dict by symbol in A-Z and turn it into a list
