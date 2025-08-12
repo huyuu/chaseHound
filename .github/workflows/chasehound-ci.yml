@@ -1,0 +1,89 @@
+name: ChaseHound CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Permet de déclencher manuellement depuis l'interface GitHub
+  workflow_dispatch:
+
+jobs:
+  # Job principal : exécution de ChaseHound
+  run-chasehound:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create results directory
+      run: mkdir -p results
+      
+    - name: Run ChaseHound with CI configuration
+      run: |
+        python scripts/run_chasehound_ci.py
+        
+    - name: Copy results to artifacts
+      run: |
+        # Copier les fichiers de résultats
+        if [ -d "temp" ]; then
+          cp -r temp/* results/ 2>/dev/null || true
+        fi
+        if [ -d "cache" ]; then
+          cp -r cache/* results/ 2>/dev/null || true
+        fi
+        
+    - name: Upload results as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: chasehound-results
+        path: results/
+        retention-days: 30
+
+  # Job de déploiement du site statique
+  deploy-website:
+    needs: run-chasehound
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download results artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: chasehound-results
+        path: results/
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Generate static website
+      run: |
+        python scripts/generate_static_site.py results docs
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+        force_orphan: true 

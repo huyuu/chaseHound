@@ -1,13 +1,84 @@
-src_python/__pycache__/
-experiments/__pycache__/
-tests/__pycache__/
-logs/
-.venv/
-.pytest_cache/
+# ChaseHound - Fichiers à ignorer
+
+# Résultats temporaires
 temp/
-archivedData/
-submodules/
-config/config_confidential.yaml
-src_CD/frontend/config/config_confidential.yaml
+results/
+cache/
+
+# Logs
+logs/
+*.log
+
+# Fichiers Python
 __pycache__/
-src_CD/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environnements virtuels
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Fichiers de configuration sensibles
+config/config_confidential.yaml
+*.key
+*.pem
+
+# Fichiers de données volumineux
+*.csv
+*.xlsx
+*.json
+*.png
+*.jpg
+*.jpeg
+
+# Exceptions pour les fichiers de données importants
+!submodules/**/*.csv
+!submodules/**/*.json
+!submodules/**/*.txt
+
+# Fichiers de cache
+.cache/
+*.cache
+
+# Fichiers temporaires
+*.tmp
+*.temp
