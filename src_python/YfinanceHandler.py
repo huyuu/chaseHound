@@ -68,7 +68,13 @@ class YfinanceHandler(CacheHandlable):
                 self._saveToCache(cache_key, result)
             else:
                 # merge les données récupérées avec les données du cache
-                extendedCachedData = pd.merge(self._cache[symbol], result, on="date", how="outer")
+                # Utiliser "outer" pour garder toutes les données, mais prioriser result sur cache
+                df_cache = self._cache[symbol].set_index('date').sort_index()
+                df_cache = df_cache[~df_cache.index.duplicated(keep='last')]
+                df_new = result.set_index('date').sort_index()
+                df_new = df_new[~df_new.index.duplicated(keep='last')]
+                extendedCachedData = df_new.combine_first(df_cache).reset_index()
+                
                 # trier les données par date
                 extendedCachedData = extendedCachedData.sort_values(by="date")
                 # enregistrer les données dans le cache

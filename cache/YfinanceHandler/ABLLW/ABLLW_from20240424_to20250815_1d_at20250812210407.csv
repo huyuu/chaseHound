@@ -1,0 +1,3 @@
+date,open,low,high,close,volume,daily_volatility_percentage,20_days_moving_average_of_close_price,60_days_moving_average_of_close_price,20_days_moving_average_of_volume,60_days_moving_average_of_volume,turnover
+2025-07-28,1.159999966621399,1.159999966621399,1.1799999475479126,1.1799999475479126,10078,1.694913713180618,,,,,11892.039471387863
+2025-08-12,1.2699999809265137,1.25,1.25,1.25,300,0.0,,,,,375.0
