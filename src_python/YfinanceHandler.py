@@ -3,6 +3,8 @@ import pandas as pd
 from typing import Optional, List
 from tqdm import tqdm
 import os
+import shutil
+import stat
 
 # Concurrency utilities
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -78,6 +80,11 @@ class YfinanceHandler(CacheHandlable):
                 # trier les données par date
                 extendedCachedData = extendedCachedData.sort_values(by="date")
                 # enregistrer les données dans le cache
+                symbol_cache_path = os.path.join(self.class_cache_folder_path, symbol)
+                if os.path.exists(symbol_cache_path):
+                    # delete the cache file
+                    shutil.rmtree(symbol_cache_path, onerror=self._handle_remove_readonly)
+                os.makedirs(symbol_cache_path, exist_ok=True)
                 self._saveToCache(cache_key, extendedCachedData)
 
         print(f"All symbols prices have been fetched and cached.")
@@ -218,4 +225,11 @@ class YfinanceHandler(CacheHandlable):
         
     def __createCacheKey(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> str:
         return f"{symbol}_from{from_date.strftime('%Y%m%d')}_to{to_date.strftime('%Y%m%d')}_{interval}_at{self.latest_absolute_current_time_in_eastern.strftime('%Y%m%d%H%M%S')}.csv"
+        
+    def _handle_remove_readonly(self, func, path, exc_info):
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception:
+            raise
         
