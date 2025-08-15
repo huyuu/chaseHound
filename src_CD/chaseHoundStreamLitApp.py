@@ -21,6 +21,7 @@ import requests
 import streamlit as st
 import base64
 import time
+from backendCDServer import run_chasehound_sync
 import yaml
 from pathlib import Path
 import sys
@@ -31,12 +32,27 @@ import re
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src_python'))
 from ChaseHoundConfig import ChaseHoundTunableParams
 
+# Try to import the GCP offloader (optional until configured)
+try:
+    from gcp_vm_offload import GcpVmOffloader
+except Exception:
+    GcpVmOffloader = None  # type: ignore
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
 # Backend URL configuration - Support for remote access
 import os
+
+class Colors:
+    """Color codes for terminal output."""
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
 
 
 def _load_confidential_config() -> Dict[str, Any]:
@@ -111,6 +127,12 @@ default_end = datetime.now().date()
 
 st.title("🐾 ChaseHound – Stock Screener")
 
+# Execution mode selector (local vs GCP offload)
+execution_mode = st.radio(
+    "Execution mode",
+    options=["Local (this machine)", "GCP VM (offload)"]
+)
+
 # ---------------------------------------------------------------------------
 # Helper functions for tunable parameters handling
 # ---------------------------------------------------------------------------
@@ -176,7 +198,7 @@ with st.form("ch_config"):
 # ---------------------------------------------------------------------------
 
 def _detect_backend_mode() -> str:
-    return "local-sync"
+    return "gcp-offload" if execution_mode == "GCP VM (offload)" else "local-sync"
 
 if submitted:
     backend_mode = _detect_backend_mode()
@@ -190,23 +212,16 @@ if submitted:
                     _val = _val.strftime("%Y-%m-%d")
                 params_dict[_name] = _val
 
-            # Include task_command if available
-            body: Dict[str, Any] = {"tunable_params": params_dict}
-
+            # Execute ChaseHound locally – synchronous call
             try:
-                resp = requests.post(RUN_ENDPOINT, json=body, timeout=60*10)
-            except requests.exceptions.RequestException as exc:
-                st.error(f"Backend connection error: {exc}")
+                data = run_chasehound_sync(params_dict)
+            except Exception as exc:
+                st.error(f"Execution error: {exc}")
                 st.stop()
 
-            results = resp.json().get("results", None)
-
-            if resp.status_code != 200:
-                st.error(f"Backend error {resp.status_code}: {resp.text}")
-                st.stop()
-
-            data = resp.json()
             status_box.update(label="Job completed!", state="complete")
+            print(f"{Colors.GREEN}🐾 ChaseHound Backend Server completed in {data.get('execution_time', '-')} seconds{Colors.ENDC}")
+
             
             # Display execution summary
             st.success(
@@ -287,5 +302,33 @@ if submitted:
                         )
                     else:
                         st.warning(f"📄 {selected_result['file']} contains no data.")
+    else:
+        # Offload to GCP VM
+        if GcpVmOffloader is None:
+            st.error("GCP offloader not available. Please ensure Google Cloud libraries are installed and configuration is set.")
+            st.stop()
+        with st.status("Provisioning VM and running job in GCP…") as status_box:
+            # Build params dict based on param_inputs from the form
+            params_dict: Dict[str, Any] = {}
+            for _name, _val in param_inputs.items():
+                if isinstance(_val, (date, datetime)):
+                    _val = _val.strftime("%Y-%m-%d")
+                params_dict[_name] = _val
+
+            try:
+                offloader = GcpVmOffloader()
+                result_info = offloader.offload_and_wait(params_dict)
+            except Exception as exc:
+                st.error(f"Offload error: {exc}")
+                st.stop()
+
+            status_box.update(label="Job completed in GCP!", state="complete")
+            st.success("✅ Offloaded job completed")
+
+            # Present links
+            if result_info.get("result_zip_signed_url"):
+                st.markdown(f"**Results (zip)**: [Download]({result_info['result_zip_signed_url']})")
+            if result_info.get("gcs_folder"):
+                st.markdown(f"**GCS folder**: `{result_info['gcs_folder']}`")
 
 st.caption("Backend: " + BACKEND_URL) 

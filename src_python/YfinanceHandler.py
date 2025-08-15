@@ -3,6 +3,8 @@ import pandas as pd
 from typing import Optional, List
 from tqdm import tqdm
 import os
+import shutil
+import stat
 
 # Concurrency utilities
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -11,6 +13,9 @@ from src_python.ChaseHoundBase import ChaseHoundBase
 from src_python.CacheHandlable import CacheHandlable
 from src.TradingViewHandler import TradingViewHandler
 
+import sys, asyncio
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 
 class YfinanceHandler(CacheHandlable):
@@ -37,10 +42,13 @@ class YfinanceHandler(CacheHandlable):
         # load
         for symbol in symbols:
             if symbol in self._cache: # does the symbol exist in RAM?
-                # Réperez les données correspondant à la période demandée
-                results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
-                results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
-                continue
+                # Vérifier si les données existantes comprennent la période demandée
+                if self._cache[symbol]["date"].min() <= from_date and self._cache[symbol]["date"].max() >= to_date:
+                    # Réperez les données correspondant à la période demandée
+                    results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
+                    results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
+                    continue
+            # else, need fetch
             symbolsToFetch.append(symbol) # if not, add it to the list of symbols to fetch
         if len(symbolsToFetch) == 0:
             # sort the dict by symbol in A-Z and turn it into a list
@@ -62,10 +70,21 @@ class YfinanceHandler(CacheHandlable):
                 self._saveToCache(cache_key, result)
             else:
                 # merge les données récupérées avec les données du cache
-                extendedCachedData = pd.merge(self._cache[symbol], result, on="date", how="outer")
+                # Utiliser "outer" pour garder toutes les données, mais prioriser result sur cache
+                df_cache = self._cache[symbol].set_index('date').sort_index()
+                df_cache = df_cache[~df_cache.index.duplicated(keep='last')]
+                df_new = result.set_index('date').sort_index()
+                df_new = df_new[~df_new.index.duplicated(keep='last')]
+                extendedCachedData = df_new.combine_first(df_cache).reset_index()
+                
                 # trier les données par date
                 extendedCachedData = extendedCachedData.sort_values(by="date")
                 # enregistrer les données dans le cache
+                symbol_cache_path = os.path.join(self.class_cache_folder_path, symbol)
+                if os.path.exists(symbol_cache_path):
+                    # delete the cache file
+                    shutil.rmtree(symbol_cache_path, onerror=self._handle_remove_readonly)
+                os.makedirs(symbol_cache_path, exist_ok=True)
                 self._saveToCache(cache_key, extendedCachedData)
 
         print(f"All symbols prices have been fetched and cached.")
@@ -206,4 +225,11 @@ class YfinanceHandler(CacheHandlable):
         
     def __createCacheKey(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> str:
         return f"{symbol}_from{from_date.strftime('%Y%m%d')}_to{to_date.strftime('%Y%m%d')}_{interval}_at{self.latest_absolute_current_time_in_eastern.strftime('%Y%m%d%H%M%S')}.csv"
+        
+    def _handle_remove_readonly(self, func, path, exc_info):
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception:
+            raise
         

@@ -90,21 +90,21 @@ class InvestmentTarget(ChaseHoundBase):
             "priceStdLongTerm": self.priceStdLongTerm,
         }
 
-        # Latest OHLCV information if available
-        if isinstance(self.candles, pd.DataFrame) and not self.candles.empty:
-            last = self.candles.iloc[-1]
-            for col in ["open", "high", "low", "close", "volume"]:
-                # Some data sources use capitalised column names – be lenient
-                if col in last:
-                    data[col] = last[col]
-                elif col.capitalize() in last:
-                    data[col] = last[col.capitalize()]
-                else:
-                    data[col] = None
-        else:
-            # Preserve column structure even if data is missing
-            for col in ["open", "high", "low", "close", "volume"]:
-                data[col] = None
+        # # Latest OHLCV information if available
+        # if isinstance(self.candles, pd.DataFrame) and not self.candles.empty:
+        #     last = self.candles.iloc[-1]
+        #     for col in ["open", "high", "low", "close", "volume"]:
+        #         # Some data sources use capitalised column names – be lenient
+        #         if col in last:
+        #             data[col] = last[col]
+        #         elif col.capitalize() in last:
+        #             data[col] = last[col.capitalize()]
+        #         else:
+        #             data[col] = None
+        # else:
+        #     # Preserve column structure even if data is missing
+        #     for col in ["open", "high", "low", "close", "volume"]:
+        #         data[col] = None
 
         # Add filter results from additional_info dictionary
         if hasattr(self, 'additional_info') and isinstance(self.additional_info, dict):
