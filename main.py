@@ -225,9 +225,9 @@ class ChaseHoundLauncher:
         """Monitor running processes and handle shutdown."""
         try:
             while True:
-                if self.backend_process and self.backend_process.poll() is not None:
-                    self.print_error("Backend server process stopped unexpectedly")
-                    break
+                # if self.backend_process and self.backend_process.poll() is not None:
+                #     self.print_error("Backend server process stopped unexpectedly")
+                #     break
                 if self.streamlit_process and self.streamlit_process.poll() is not None:
                     self.print_error("Streamlit app process stopped unexpectedly")
                     break
@@ -245,12 +245,12 @@ class ChaseHoundLauncher:
         
         if not self.check_and_install_dependencies():
             return False
-        if not self.start_backend_server():
-            return False
-        if not self.wait_for_backend():
-            self.print_error("Backend server failed to start properly")
-            self.stop_processes()
-            return False
+        # if not self.start_backend_server():
+        #     return False
+        # if not self.wait_for_backend():
+        #     self.print_error("Backend server failed to start properly")
+        #     self.stop_processes()
+        #     return False
         if not self.start_streamlit_app():
             self.print_error("Streamlit app failed to start")
             self.stop_processes()
