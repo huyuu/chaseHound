@@ -319,13 +319,15 @@ class ChaseHoundMain(ChaseHoundBase):
         result_df = pd.DataFrame()
         for target in targets:
             result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        if len(result_df) == 0:
+            return result_df
         # sort by currentDayPriceChangePercentage
         result_df = result_df.sort_values(by="currentDayPriceChangePercentage", ascending=False)
         # add turnover ranking for the existing symbols
         # result_df["turnoverRanking"] = result_df["previousDayTurnover"].rank(method="first", ascending=False)
         path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
-        if len(result_df) > 0:
-            result_df.to_csv(path, index=False)
+        
+        result_df.to_csv(path, index=False)
         return result_df
 
     def _printAndStoreResultsForMainTargets(self, targets: List[InvestmentTarget], virtual_date: datetime, best_n_targets: pd.DataFrame, profix: str = "") -> pd.DataFrame:
@@ -333,6 +335,8 @@ class ChaseHoundMain(ChaseHoundBase):
         result_df = pd.DataFrame()
         for target in targets:
             result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        if len(result_df) == 0:
+            return result_df
         # sort by currentDayPriceChangePercentage
         result_df = result_df.sort_values(by="currentDayPriceChangePercentage", ascending=False)
         # add turnover ranking for the existing symbols
@@ -341,8 +345,7 @@ class ChaseHoundMain(ChaseHoundBase):
         result_df["isInBestNTargets"] = result_df["symbol"].isin(best_n_targets["symbol"].tolist()).astype(bool)
 
         path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
-        if len(result_df) > 0:
-            result_df.to_csv(path, index=False)
+        result_df.to_csv(path, index=False)
         return result_df
 
     def _printAndStoreResultsForBestNTargets(self, targets: List[InvestmentTarget], virtual_date: datetime, dropped_out_at: List[str], profix: str = "") -> pd.DataFrame:
@@ -350,6 +353,8 @@ class ChaseHoundMain(ChaseHoundBase):
         result_df = pd.DataFrame()
         for target in targets:
             result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        if len(result_df) == 0:
+            return result_df
         # sort by currentDayPriceChangePercentage
         result_df = result_df.sort_values(by="currentDayPriceChangePercentage", ascending=False)
         # add turnover ranking for the existing symbols
@@ -357,8 +362,7 @@ class ChaseHoundMain(ChaseHoundBase):
         # add droppedOutAtFilter
         result_df["droppedOutAtFilter"] = dropped_out_at
         path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
-        if len(result_df) > 0:
-            result_df.to_csv(path, index=False)
+        result_df.to_csv(path, index=False)
         return result_df
 
     def _postAnalysis(self, virtual_date: datetime):
