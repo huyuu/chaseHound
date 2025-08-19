@@ -82,12 +82,15 @@ class InvestmentTarget(ChaseHoundBase):
             "previousDayVolume": self.previousDayVolume,
             "latestMarketCap": self.latestMarketCap,
             "previousDayTurnover": self.previousDayTurnover,
-            "turnoverShortTerm": self.turnoverShortTerm,
-            "turnoverLongTerm": self.turnoverLongTerm,
-            "atrShortTerm": self.atrShortTerm,
-            "atrLongTerm": self.atrLongTerm,
-            "priceStdShortTerm": self.priceStdShortTerm,
-            "priceStdLongTerm": self.priceStdLongTerm,
+            # "turnoverShortTerm": self.turnoverShortTerm,
+            # "turnoverLongTerm": self.turnoverLongTerm,
+            "turnoverRatio": self.turnoverShortTerm / self.turnoverLongTerm,
+            # "atrShortTerm": self.atrShortTerm,
+            # "atrLongTerm": self.atrLongTerm,
+            "atrRatio": self.atrShortTerm / self.atrLongTerm,
+            # "priceStdShortTerm": self.priceStdShortTerm,
+            # "priceStdLongTerm": self.priceStdLongTerm,
+            "priceStdRatio": self.priceStdShortTerm / self.priceStdLongTerm,
         }
 
         # # Latest OHLCV information if available

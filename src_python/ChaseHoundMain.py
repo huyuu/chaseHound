@@ -78,8 +78,9 @@ class ChaseHoundMain(ChaseHoundBase):
         while virtual_date >= self.start_date:
             # Stage 1: Initialize investment targets
             # Stage 1-1: Monitor symbols list
-            self._targets = self._fetchSymbolsData(virtual_date=virtual_date)
-            original_targets = self._targets.copy()
+            self._targets: List[InvestmentTarget] = self._fetchSymbolsData(virtual_date=virtual_date)
+            self._targets = self._preprocessAfterFetchingSymbolsData(self._targets)
+            original_targets: List[InvestmentTarget] = self._targets.copy()
 
             # Stage 2: Filter investment targets
             # Stage 2-1: Filter with fundamental filters
@@ -95,13 +96,22 @@ class ChaseHoundMain(ChaseHoundBase):
             # stage 4: fill the recorded performance (if in close-loop-simulation mode)
             self._targets = self._fillRecordedPerformance(self._targets, virtual_date)
 
+            # fill in the performance for the filtered targets
+            all_targets = self._fillRecordedPerformance(original_targets, virtual_date)
+
+            # calculate the most n targets which have the highest currentDayPriceChangePercentage
+            best_n_targets = self._calculateMostNTargets(all_targets, n=self.config.tunableParams.bestTargetsN)
+
+            # pass the best n targets through the filters and find out in which filter they dropped
+            best_n_targets_dropped_out_at = self._findTheFilterWhereItDroppedOut(best_n_targets)
+
             # stage 5: find and store sp500 avg. Sp500 could be retrieved by ^SPX symbol in yf
             sp500_target = self._findAndStoreSp500Avg(virtual_date)
 
-
             # Stage 6: Print and store the results
-            self._printAndStoreResults(self._targets, virtual_date, profix="results")
             self._printAndStoreResults([sp500_target], virtual_date, profix="sp500Avg")
+            best_n_targets_df = self._printAndStoreResultsForBestNTargets(best_n_targets, virtual_date, best_n_targets_dropped_out_at, profix="bestTargetsOfTheDay")
+            self._printAndStoreResultsForMainTargets(self._targets, virtual_date, best_n_targets_df, profix="results")
 
             self._postAnalysis(virtual_date)
 
@@ -304,14 +314,52 @@ class ChaseHoundMain(ChaseHoundBase):
         return targets
 
 
-    def _printAndStoreResults(self, targets: List[InvestmentTarget], virtual_date: datetime, profix: str = ""):
+    def _printAndStoreResults(self, targets: List[InvestmentTarget], virtual_date: datetime, profix: str = "") -> pd.DataFrame:
         # store targets to csv
         result_df = pd.DataFrame()
         for target in targets:
             result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        # sort by currentDayPriceChangePercentage
+        result_df = result_df.sort_values(by="currentDayPriceChangePercentage", ascending=False)
+        # add turnover ranking for the existing symbols
+        # result_df["turnoverRanking"] = result_df["previousDayTurnover"].rank(method="first", ascending=False)
         path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
         if len(result_df) > 0:
             result_df.to_csv(path, index=False)
+        return result_df
+
+    def _printAndStoreResultsForMainTargets(self, targets: List[InvestmentTarget], virtual_date: datetime, best_n_targets: pd.DataFrame, profix: str = "") -> pd.DataFrame:
+        # store targets to csv
+        result_df = pd.DataFrame()
+        for target in targets:
+            result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        # sort by currentDayPriceChangePercentage
+        result_df = result_df.sort_values(by="currentDayPriceChangePercentage", ascending=False)
+        # add turnover ranking for the existing symbols
+        # result_df["turnoverRanking"] = result_df["previousDayTurnover"].rank(method="first", ascending=False)
+        # add isInBestNTargets
+        result_df["isInBestNTargets"] = result_df["symbol"].isin(best_n_targets["symbol"].tolist()).astype(bool)
+
+        path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
+        if len(result_df) > 0:
+            result_df.to_csv(path, index=False)
+        return result_df
+
+    def _printAndStoreResultsForBestNTargets(self, targets: List[InvestmentTarget], virtual_date: datetime, dropped_out_at: List[str], profix: str = "") -> pd.DataFrame:
+        # store targets to csv
+        result_df = pd.DataFrame()
+        for target in targets:
+            result_df = pd.concat([result_df, target.to_series().to_frame().T], ignore_index=True, axis=0)
+        # sort by currentDayPriceChangePercentage
+        result_df = result_df.sort_values(by="currentDayPriceChangePercentage", ascending=False)
+        # add turnover ranking for the existing symbols
+        # result_df["turnoverRanking"] = result_df["previousDayTurnover"].rank(method="first", ascending=False)
+        # add droppedOutAtFilter
+        result_df["droppedOutAtFilter"] = dropped_out_at
+        path = os.path.join(self.project_root, "temp", f"{virtual_date.strftime('%Y%m%d')}_{profix}.csv")
+        if len(result_df) > 0:
+            result_df.to_csv(path, index=False)
+        return result_df
 
     def _postAnalysis(self, virtual_date: datetime):
         self.postAnalysis.plotDistribution()
@@ -403,6 +451,95 @@ class ChaseHoundMain(ChaseHoundBase):
         sp500_target = self._fillRecordedPerformance([sp500_target], virtual_date)[0]
 
         return sp500_target
+
+
+    def _calculateMostNTargets(self, targets: List[InvestmentTarget], n: int) -> List[InvestmentTarget]:
+        return sorted(targets, key=lambda x: x.additional_info["currentDayPriceChangePercentage"], reverse=True)[:n]
+
+
+    def _findTheFilterWhereItDroppedOut(self, targets: List[InvestmentTarget]) -> List[str]:
+        """Determine at which filter stage each *target* was discarded.
+
+        The function sequentially re-applies all filters (fundamental →
+        volatility → right-side).  For every *target*, the first filter that
+        rejects it is recorded and returned.  If a target passes all filters,
+        the string ``"passed_all_filters"`` is returned instead.
+
+        Side-effect: the result is also stored in
+        ``target.additional_info["droppedOutAtFilter"]`` so that the
+        information gets exported alongside other metrics when the target is
+        converted to a ``pd.Series``.
+        """
+
+        dropped_out_list: List[str] = []
+
+        # ------------------------------------------------------------------
+        # Re-use the existing *batch* filter helpers to locate the stage where
+        # each target has been eliminated.  We compare the target lists after
+        # every stage to identify the first filter group that discarded it.
+        # ------------------------------------------------------------------
+
+        # 1. Initialise the reason map with the optimistic outcome
+        reason_map = {t.symbol: "passedAllFilters" for t in targets}
+
+        # 2. Fundamental filters ------------------------------------------------
+        after_foundamental = self._filterWithFoundamentalFilters(targets)
+        for t in targets:
+            if t not in after_foundamental:
+                reason_map[t.symbol] = "foundamentalFilters"
+
+        # 3. Volatility filters -------------------------------------------------
+        after_volatility = self._filterWithVolatilityFilters(after_foundamental)
+        for t in after_foundamental:
+            if t not in after_volatility and reason_map[t.symbol] == "passedAllFilters":
+                reason_map[t.symbol] = "volatilityFilters"
+
+        # 4. Right-side filters --------------------------------------------------
+        after_right_side = self._filterWithRightSideFilters(after_volatility)
+        for t in after_volatility:
+            if t not in after_right_side and reason_map[t.symbol] == "passedAllFilters":
+                reason_map[t.symbol] = "rightSideFilters"
+
+        # 5. Signal layers (currently a pass-through, but kept for completeness)
+        after_signal_layers = self._filterWithSignalLayers(after_right_side)
+        for t in after_right_side:
+            if t not in after_signal_layers and reason_map[t.symbol] == "passedAllFilters":
+                reason_map[t.symbol] = "signalLayers"
+
+        # 6. Persist result on each target and build output list
+        for t in targets:
+            t.additional_info["droppedOutAtFilter"] = reason_map[t.symbol]
+            dropped_out_list.append(reason_map[t.symbol])
+
+        return dropped_out_list
+
+    def _preprocessAfterFetchingSymbolsData(self, targets: List[InvestmentTarget]) -> List[InvestmentTarget]:
+        # calculate previousDayTurnover ranking, among the given targets
+        
+        
+        # Return early if there are no targets to process
+        if not targets:
+            return targets
+
+        # ------------------------------------------------------------------
+        # Compute ranking based on ``previousDayTurnover``.
+        # The highest turnover receives rank 1, the next highest rank 2, etc.
+        # ------------------------------------------------------------------
+
+        # Sort targets by turnover in *descending* order (highest first)
+        sorted_by_turnover = sorted(
+            targets,
+            key=lambda t: (t.previousDayTurnover if t.previousDayTurnover is not None else -float("inf")),
+            reverse=True,
+        )
+
+        # Assign rank — note that we preserve stability ("first" method)
+        for rank, target in enumerate(sorted_by_turnover, start=1):
+            # Store in ``additional_info`` so that it gets exported by ``to_series``
+            target.additional_info["previousDayTurnoverRanking"] = rank
+
+        # Nothing else to modify – the caller expects the *same* list back
+        return targets
 
 
 if __name__ == "__main__":
