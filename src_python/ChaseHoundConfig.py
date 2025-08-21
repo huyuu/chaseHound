@@ -8,7 +8,7 @@ class ChaseHoundTunableParams:
         self.end_date: str = "2025-06-30"
 
         # Existing fundamental filter parameters
-        self.lowest_market_gap: float = 50000000
+        self.lowest_market_cap: float = 50000000
         self.lowest_avg_turnover: float = 20000000
         self.lowest_avg_turnover_days: int = 20
         self.lowest_price: float = 2.0

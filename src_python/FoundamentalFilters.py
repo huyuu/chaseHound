@@ -6,12 +6,12 @@ from src_python.InvestmentTarget import InvestmentTarget
 class MarketGapFilter(FilterBase):
     def __init__(self, config: ChaseHoundConfig):
         super().__init__(config)
-        assert self.config.tunableParams.lowest_market_gap is not None
+        assert self.config.tunableParams.lowest_market_cap is not None
 
 
     def apply(self, target: InvestmentTarget) -> bool:
-        didPass = target.latestMarketCap >= self.config.tunableParams.lowest_market_gap
-        target.additional_info["didPassMarketGapFilter"] = didPass
+        didPass = target.latestMarketCap >= self.config.tunableParams.lowest_market_cap
+        target.additional_info["didPassMarketCapFilter"] = didPass
         return didPass
 
 

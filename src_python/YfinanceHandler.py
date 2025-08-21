@@ -60,13 +60,14 @@ class YfinanceHandler(CacheHandlable):
         fetchedResults = self._async_fetch_history_prices_of(symbolsToFetch, from_date, to_date, interval)
         for symbol, result in zip(symbolsToFetch, fetchedResults):
             results_dict[symbol] = result
-            cache_key = self.__createCacheKey(symbol, from_date, to_date, interval)
+            
             # enregistrer les données dans le cache
             if result is None:
                 continue
             elif len(result) == 0:
                 continue
             elif symbol not in self._cache.keys(): # if the symbol is not in the cache, save the result to the cache
+                cache_key = self.__createCacheKey(symbol, from_date, to_date, interval)
                 self._saveToCache(cache_key, result)
             else:
                 # merge les données récupérées avec les données du cache
@@ -85,6 +86,10 @@ class YfinanceHandler(CacheHandlable):
                     # delete the cache file
                     shutil.rmtree(symbol_cache_path, onerror=self._handle_remove_readonly)
                 os.makedirs(symbol_cache_path, exist_ok=True)
+                # calculer la cache clé après le fond
+                from_date_cache = extendedCachedData["date"].min()
+                to_date_cache = extendedCachedData["date"].max()
+                cache_key = self.__createCacheKey(symbol, from_date_cache, to_date_cache, interval)
                 self._saveToCache(cache_key, extendedCachedData)
 
         print(f"All symbols prices have been fetched and cached.")

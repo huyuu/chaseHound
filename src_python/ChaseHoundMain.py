@@ -90,10 +90,11 @@ class ChaseHoundMain(ChaseHoundBase):
             # Stage 2-3: Filter with right-side filters
             self._targets = self._filterWithRightSideFilters(self._targets)
 
-            # Stage 3: Filter with Signal Layers
-            self._targets = self._filterWithSignalLayers(self._targets)
+            # Stage 3: Filter with agents
+            # self._runVolumeProfileAgent(self._targets)
 
-            # stage 4: fill the recorded performance (if in close-loop-simulation mode)
+
+            # stage 5-1: fill the recorded performance (if in close-loop-simulation mode)
             self._targets = self._fillRecordedPerformance(self._targets, virtual_date)
 
             # fill in the performance for the filtered targets
@@ -105,7 +106,7 @@ class ChaseHoundMain(ChaseHoundBase):
             # pass the best n targets through the filters and find out in which filter they dropped
             best_n_targets_dropped_out_at = self._findTheFilterWhereItDroppedOut(best_n_targets)
 
-            # stage 5: find and store sp500 avg. Sp500 could be retrieved by ^SPX symbol in yf
+            # stage 5-2: find and store sp500 avg. Sp500 could be retrieved by ^SPX symbol in yf
             sp500_target = self._findAndStoreSp500Avg(virtual_date)
 
             # Stage 6: Print and store the results
@@ -116,6 +117,7 @@ class ChaseHoundMain(ChaseHoundBase):
             self._postAnalysis(virtual_date)
 
             virtual_date = self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date)
+            
 
         self.yfinanceHandler.shutdown()
 
