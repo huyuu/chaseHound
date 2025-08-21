@@ -32,7 +32,7 @@ class YfinanceHandler(CacheHandlable):
 
     # MARK: - Public Methods
 
-    def loadFromRamOrAsyncFetchHistoryPricesOf(self, symbols: List[str], from_date: datetime, to_date: datetime, interval: str) -> List[Optional[pd.DataFrame]]:
+    def loadFromRamOrAsyncFetchHistoryPricesOf(self, symbols: List[str], from_date: datetime, to_date: datetime, interval: str, shouldAbandonFetching: bool = False) -> List[Optional[pd.DataFrame]]:
         if len(self._cache) == 0:
             self._cache = self._loadCache(symbols)
 

@@ -111,10 +111,11 @@ class PostAnalysis(ChaseHoundBase):
         ax1.set_ylim(-0.2, 0.5)
         ax1.set_xlabel("Date")
         ax1.set_ylabel("Performance Mean")
-        ax1.grid(True, axis="y")
+        ax1.grid(True, axis="y", linestyle=":", linewidth=0.5, alpha=0.5)
 
         # Hit-rate curve (right axis, different unit scale)
         ax2 = ax1.twinx()
+        ax2.grid(True, axis="y", linestyle="--", linewidth=0.5, alpha=0.5)
         if len(hitRateDf) > 0:
             ax2.plot(hitRateDf["date"], hitRateDf["hitRate"], color="C2", label="Hit Rate (Right Axis)", alpha=0.75)
             ax2.set_ylabel("Hit Rate")
