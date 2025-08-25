@@ -39,20 +39,39 @@ class YfinanceHandler(CacheHandlable):
         symbolsToFetch = []
         results_dict = {}
 
+        def extractNeededDataFromCachedData(from_date: datetime, to_date: datetime, cacheData: pd.DataFrame) -> Optional[pd.DataFrame]:
+            if cacheData["date"].min() <= from_date and cacheData["date"].max() >= to_date:
+                # Réperez les données correspondant à la période demandée
+                cacheData = cacheData[cacheData["date"] >= from_date]
+                cacheData = cacheData[cacheData["date"] <= to_date]
+                return cacheData
+            else:
+                return None
+
         # load
         for symbol in symbols:
             if symbol in self._cache: # does the symbol exist in RAM?
                 # Vérifier si les données existantes comprennent la période demandée
-                if self._cache[symbol]["date"].min() <= from_date and self._cache[symbol]["date"].max() >= to_date:
-                    # Réperez les données correspondant à la période demandée
-                    results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
-                    results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
+                # if self._cache[symbol]["date"].min() <= from_date and self._cache[symbol]["date"].max() >= to_date:
+                #     # Réperez les données correspondant à la période demandée
+                #     results_dict[symbol] = self._cache[symbol][self._cache[symbol]["date"] >= from_date]
+                #     results_dict[symbol] = results_dict[symbol][results_dict[symbol]["date"] <= to_date]
+                #     continue
+                results_dict[symbol] = extractNeededDataFromCachedData(from_date, to_date, self._cache[symbol])
+                if results_dict[symbol] is not None:
                     continue
             # else, need fetch
-            symbolsToFetch.append(symbol) # if not, add it to the list of symbols to fetch
+            if shouldAbandonFetching:
+                results_dict[symbol] = None
+            else:
+                symbolsToFetch.append(symbol) # if not, add it to the list of symbols to fetch
+        # if shouldAbandonFetching is True, return the results_dict
+        if shouldAbandonFetching:
+            return [results_dict.get(symbol, None) for symbol in symbols]
+        
         if len(symbolsToFetch) == 0:
             # sort the dict by symbol in A-Z and turn it into a list
-            results_list = [results_dict[symbol] for symbol in sorted(results_dict.keys())]
+            results_list = [results_dict.get(symbol, None) for symbol in symbols]
             return results_list
 
         # fetch
@@ -69,6 +88,7 @@ class YfinanceHandler(CacheHandlable):
             elif symbol not in self._cache.keys(): # if the symbol is not in the cache, save the result to the cache
                 cache_key = self.__createCacheKey(symbol, from_date, to_date, interval)
                 self._saveToCache(cache_key, result)
+                results_dict[symbol] = extractNeededDataFromCachedData(from_date, to_date, result)
             else:
                 # merge les données récupérées avec les données du cache
                 # Utiliser "outer" pour garder toutes les données, mais prioriser result sur cache
@@ -91,10 +111,12 @@ class YfinanceHandler(CacheHandlable):
                 to_date_cache = extendedCachedData["date"].max()
                 cache_key = self.__createCacheKey(symbol, from_date_cache, to_date_cache, interval)
                 self._saveToCache(cache_key, extendedCachedData)
+                results_dict[symbol] = extractNeededDataFromCachedData(from_date, to_date, extendedCachedData)
 
         print(f"All symbols prices have been fetched and cached.")
         # sort the dict by symbol in A-Z and turn it into a list
-        results_list = [results_dict[symbol] for symbol in sorted(results_dict.keys())]
+        results_list = [results_dict.get(symbol, None) for symbol in symbols]
+        assert len(results_list) == len(symbols)
         return results_list
         
 

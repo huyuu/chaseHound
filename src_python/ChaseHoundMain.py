@@ -152,6 +152,7 @@ class ChaseHoundMain(ChaseHoundBase):
             from_date=earliest_date,
             to_date=virtual_date - timedelta(days=1),
             interval="1d",
+            shouldAbandonFetching=False
         )
 
         # 1-4. Build InvestmentTarget instances & compute metrics
@@ -300,6 +301,7 @@ class ChaseHoundMain(ChaseHoundBase):
             from_date=self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date),
             to_date=virtual_date,
             interval="1d",
+            shouldAbandonFetching=False
         )
 
         for target, candle in zip(targets, candles_at_date):
@@ -394,6 +396,7 @@ class ChaseHoundMain(ChaseHoundBase):
             from_date=earliest_date,
             to_date=virtual_date - timedelta(days=1),  # only up to the prev. day
             interval="1d",
+            shouldAbandonFetching=False
         )
         data = history_prices_list[0] if history_prices_list else None
         if data is None or data.empty:
