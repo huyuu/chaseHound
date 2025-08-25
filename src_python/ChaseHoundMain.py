@@ -114,10 +114,11 @@ class ChaseHoundMain(ChaseHoundBase):
             best_n_targets_df = self._printAndStoreResultsForBestNTargets(best_n_targets, virtual_date, best_n_targets_dropped_out_at, profix="bestTargetsOfTheDay")
             self._printAndStoreResultsForMainTargets(self._targets, virtual_date, best_n_targets_df, profix="results")
 
-            self._postAnalysis(virtual_date)
+            self._postAnalysisForDay(virtual_date)
 
             virtual_date = self.usSymbolsHandler.getPreviousMarketOpenDate(virtual_date)
             
+        self._postAnalysisForAllDays()
 
         self.yfinanceHandler.shutdown()
 
@@ -369,7 +370,7 @@ class ChaseHoundMain(ChaseHoundBase):
         result_df.to_csv(path, index=False)
         return result_df
 
-    def _postAnalysis(self, virtual_date: datetime):
+    def _postAnalysisForDay(self, virtual_date: datetime):
         self.postAnalysis.plotDistribution()
 
     def _findAndStoreSp500Avg(self, virtual_date: datetime):
@@ -549,6 +550,9 @@ class ChaseHoundMain(ChaseHoundBase):
 
         # Nothing else to modify – the caller expects the *same* list back
         return targets
+    
+    def _postAnalysisForAllDays(self):
+        self.postAnalysis.writeOverallHitRate()
 
 
 if __name__ == "__main__":
